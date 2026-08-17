@@ -24,8 +24,23 @@
   </header>
 
   <main class="wrap">
+    <!-- ============ SERVICES ============ -->
+    <section class="card">
+      <div class="card-head">
+        <div>
+          <h2>Services</h2>
+          <p class="hint">Konsi seva chahiye? Click karo — us service ka document upload ho jayega.</p>
+        </div>
+      </div>
+      <div id="servicesGrid" class="services-grid"></div>
+    </section>
+
     <!-- ============ UPLOAD ============ -->
     <section class="card">
+      <div class="active-service" id="activeService" hidden>
+        <span id="activeServiceText"></span>
+        <button class="chip-clear" id="activeServiceClear" title="Service hatao">✕</button>
+      </div>
       <div class="upload-zone" id="uploadZone">
         <input type="file" id="fileInput" accept=".pdf,.txt,.csv,.jpg,.jpeg,.png" hidden />
         <div class="upload-inner" id="uploadInner">

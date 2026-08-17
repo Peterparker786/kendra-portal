@@ -36,6 +36,24 @@ function docIcon(type) {
   return '📄';
 }
 
+// ---- Jan Seva Kendra services (home pe grid me dikhti hain) ----
+const SERVICES = [
+  { type: 'Aadhaar Card', icon: '🪪', desc: 'Aadhaar naya / update / correction' },
+  { type: 'Aadhaar Correction', icon: '✏️', desc: 'Aadhaar me sudhar — naam, DOB, address' },
+  { type: 'Niwas Praman (Residence)', icon: '🏠', desc: 'Niwas praman patra' },
+  { type: 'Domicile Certificate', icon: '🏡', desc: 'Domicile certificate' },
+  { type: 'Cast Certificate', icon: '🧬', desc: 'Jati praman patra' },
+  { type: 'Income Certificate', icon: '💰', desc: 'Aay praman patra' },
+  { type: 'Birth Certificate', icon: '👶', desc: 'Janm praman patra' },
+  { type: 'Death Certificate', icon: '🕊️', desc: 'Mrityu praman patra' },
+  { type: 'Marriage Registration', icon: '💍', desc: 'Vivah panjikaran' },
+  { type: 'Voter ID', icon: '🗳️', desc: 'Matdata pahchan patra' },
+  { type: 'Ration Card', icon: '🛒', desc: 'Ration card naya / update' },
+  { type: 'Student / University Registration', icon: '🎓', desc: 'Chhatra / university registration' },
+  { type: 'Scholarship Documents', icon: '📚', desc: 'Chhatravritti documents' },
+  { type: 'Other', icon: '📄', desc: 'Koi aur document / service' },
+];
+
 function initials(name) {
   return String(name || '')
     .trim()
@@ -128,7 +146,14 @@ function renderPreview() {
   }
   opts += '<option value="__other__">Other (naya type likho)</option>';
   dtSel.innerHTML = opts;
-  if (p.docType && state.docTypes.includes(p.docType)) {
+  const svc = state.selectedService;
+  if (svc && state.docTypes.includes(svc)) {
+    dtSel.value = svc; // user ne service chuni thi — wahi rahegi
+  } else if (svc) {
+    dtSel.value = '__other__';
+    $('#customTypeInput').value = svc;
+    $('#customTypeBox').hidden = false;
+  } else if (p.docType && state.docTypes.includes(p.docType)) {
     dtSel.value = p.docType;
   } else if (p.docType) {
     // extracted type standard list me nahi — Other + custom box me daalo
@@ -276,6 +301,7 @@ function savePreview() {
     .then((data) => {
       state.preview = null;
       $('#previewCard').hidden = true;
+      setActiveService(null);
       toast(`Saved — "${data.customerName}" ki profile me add ho gaya`);
       return loadCustomers().then(() => selectCustomer(data.customerId));
     })
@@ -466,10 +492,50 @@ function loadDocTypes() {
     });
 }
 
+// ---------------------------------------------------------------- services
+
+function setActiveService(type) {
+  state.selectedService = type;
+  const box = $('#activeService');
+  if (!type) {
+    box.hidden = true;
+    return;
+  }
+  $('#activeServiceText').textContent = `Seva chuni gayi: ${type}`;
+  box.hidden = false;
+  $('#uploadZone').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderServices() {
+  const grid = $('#servicesGrid');
+  grid.innerHTML = '';
+  for (const s of SERVICES) {
+    const card = document.createElement('button');
+    card.type = 'button';
+    card.className = 'service-card';
+    card.innerHTML = `
+      <span class="service-icon">${s.icon}</span>
+      <span class="service-name">${esc(s.type)}</span>
+      <span class="service-desc">${esc(s.desc)}</span>
+    `;
+    card.addEventListener('click', () => {
+      setActiveService(s.type);
+      toast(`"${s.type}" chuni gayi — ab document upload karo`);
+    });
+    grid.appendChild(card);
+  }
+}
+
+function wireServices() {
+  $('#activeServiceClear').addEventListener('click', () => setActiveService(null));
+}
+
 // ---------------------------------------------------------------- boot
 
 wireUpload();
 wirePreview();
 wireDashboard();
+wireServices();
+renderServices();
 loadDocTypes();
 loadCustomers();
