@@ -745,6 +745,42 @@ function wirePassport() {
     a.click();
     a.remove();
   });
+  $('#passportPrintBtn').addEventListener('click', () => {
+    if (!passportPdfUrl) return;
+    toast('Print window khol rahe hain…');
+    printPdf(passportPdfUrl);
+  });
+}
+
+// A4 PDF ko hidden iframe me load karke print dialog kholo.
+// Agar browser print na kar paye (jaise mobile) to PDF naye tab me khul jayegi.
+function printPdf(dataUrl) {
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+  iframe.src = dataUrl;
+  let openedFallback = false;
+  const openFallback = () => {
+    if (openedFallback) return;
+    openedFallback = true;
+    window.open(dataUrl, '_blank', 'noopener');
+  };
+  iframe.onload = () => {
+    try {
+      const w = iframe.contentWindow;
+      let printed = false;
+      w.addEventListener('beforeprint', () => { printed = true; });
+      w.focus();
+      w.print();
+      // print() turant wapas aa gaya (dialog nahi khula) => PDF tab me kholo
+      setTimeout(() => { if (!printed) openFallback(); }, 800);
+    } catch {
+      openFallback();
+    }
+  };
+  // PDF 6 sec me load na ho to bhi fallback
+  setTimeout(openFallback, 6000);
+  document.body.appendChild(iframe);
+  setTimeout(() => iframe.remove(), 120000);
 }
 
 function escapeHtml(s) {
