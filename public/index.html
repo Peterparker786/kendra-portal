@@ -21,22 +21,12 @@
           <div class="stat"><b id="statDocs">0</b><span>Documents</span></div>
         </div>
         <button class="btn sheet-btn" id="sheetBtn" hidden title="Google Sheet / Excel">📊 Open Excel (Google Sheet)</button>
+        <button class="btn sheet-btn" id="servicesBtn" title="Services">🛠 Services</button>
       </div>
     </div>
   </header>
 
   <main class="wrap">
-    <!-- ============ SERVICES ============ -->
-    <section class="card">
-      <div class="card-head">
-        <div>
-          <h2>Services</h2>
-          <p class="hint">Naya document <b>banwana</b> hai? Card pe click karo — official website khulegi. Pehle se bana document <b>upload</b> karna hai? Neeche upload box me daalo.</p>
-        </div>
-      </div>
-      <div id="servicesGrid" class="services-grid"></div>
-    </section>
-
     <!-- ============ UPLOAD ============ -->
     <section class="card">
       <div class="upload-zone" id="uploadZone">
@@ -142,6 +132,18 @@
       <div id="documentsList"></div>
     </section>
   </main>
+
+  <!-- ============ SERVICES MODAL ============ -->
+  <div class="modal" id="servicesModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>Services</h2>
+        <button class="modal-close" id="servicesClose" title="Band karo">✕</button>
+      </div>
+      <p class="hint">Naya document <b>banwana</b> hai? Card pe click karo — official website khulegi.</p>
+      <div id="servicesGrid" class="services-grid"></div>
+    </div>
+  </div>
 
   <div id="toast" class="toast" role="status"></div>
 

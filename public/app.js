@@ -523,6 +523,19 @@ function loadDocTypes() {
 
 // ---------------------------------------------------------------- services
 
+function wireServices() {
+  const modal = $('#servicesModal');
+  $('#servicesBtn').addEventListener('click', () => {
+    modal.hidden = false;
+  });
+  $('#servicesClose').addEventListener('click', () => {
+    modal.hidden = true;
+  });
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.hidden = true; // bahar click -> band
+  });
+}
+
 // Google Sheet ke "Services" tab se links (name + url). Sheet me link badlo ->
 // ~2 min me portal me naya link dikh jayega. Sheet wala URL jeetta hai; nayi
 // service row add karo to naya card bhi aa jayega.
@@ -602,6 +615,7 @@ wireUpload();
 wirePreview();
 wireDashboard();
 wireSheetBtn();
+wireServices();
 renderServices();
 loadDocTypes();
 loadServices();
