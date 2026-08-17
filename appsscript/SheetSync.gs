@@ -17,6 +17,12 @@
  *   6. Woh URL mujhe bhejo, main config.js me daal dunga
  ***************************************************************/
 
+// Browser me URL kholne pe yeh chhota page dikhta hai (authorization ke liye).
+function doGet() {
+  return ContentService.createTextOutput('Kendra Portal sheet sync ready. Data POST se aata hai.')
+    .setMimeType(ContentService.MimeType.TEXT);
+}
+
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);

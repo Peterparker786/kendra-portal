@@ -7,7 +7,7 @@ import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { ocrImage } from './ocr.js';
-import { aiExtract } from './ai.js';
+import { aiExtract, aiEnabled } from './ai.js';
 
 const require = createRequire(import.meta.url);
 // pdfjs wants standard font data for metric lookups; serve the real files from
@@ -251,6 +251,36 @@ export async function analyzeDocument(buffer, filename) {
   const lower = String(filename || '').toLowerCase();
   const isImage = /\.(jpe?g|png)$/.test(lower);
 
+  // ---- AI-first: image + AI key available -> seedha AI pe (tedi/dhundhli/
+  // handwritten/Hindi photos ke liye fast aur better). Tesseract skip.
+  if (isImage && aiEnabled()) {
+    try {
+      const ai = await aiExtract(buffer, filename);
+      if (ai && ai.fields && Object.values(ai.fields).some((v) => String(v || '').trim())) {
+        const fields = [];
+        for (const [k, display] of Object.entries(AI_KEY_MAP)) {
+          const v = String(ai.fields[k] ?? '').trim();
+          if (v) fields.push({ key: display, value: v });
+        }
+        const customerField = fields.find((f) => f.key === 'Customer Name');
+        const customerName =
+          (customerField && customerField.value) ||
+          filename.replace(/\.[^.]+$/, '').replace(/[_-]+/g, ' ').trim() ||
+          'Unknown';
+        return {
+          filename,
+          text: ai.text || '',
+          customerName,
+          docType: ai.docType || '',
+          fields,
+        };
+      }
+    } catch (err) {
+      console.error('AI-first failed, tesseract pe gir raha hoon:', err.message);
+    }
+  }
+
+  // ---- tesseract / pdfjs path (AI nahi hai ya fail hua) ----
   let lines = textLinesFromBuffer(buffer, filename);
   let confidence = 0;
   if (!lines && isImage) {

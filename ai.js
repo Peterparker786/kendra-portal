@@ -52,6 +52,11 @@ const PROMPT = [
   'Output nothing except the JSON object.',
 ].join('\n');
 
+/** Kya koi AI provider configured hai? (images ko seedha AI pe bhejna hai ya nahi) */
+export function aiEnabled() {
+  return Boolean(GEMINI_API_KEY || NARA_ROUTER_KEY);
+}
+
 /** Image/PDF buffer -> parsed JSON { text, docType, fields } | null (agar key nahi / fail) */
 export async function aiExtract(buffer, filename) {
   // 1) Google Gemini (agar AIza key hai)
