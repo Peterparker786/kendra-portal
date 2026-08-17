@@ -136,6 +136,7 @@ function seedServices(sheet) {
   var rows = [
     ['Aadhaar Card', 'https://myaadhaar.uidai.gov.in/'],
     ['Aadhaar Correction', 'https://myaadhaar.uidai.gov.in/'],
+    ['PAN Card', 'https://www.proteantech.in/pan-india/index.html'],
     ['Niwas Praman (Residence)', 'https://edistrict.up.gov.in/'],
     ['Domicile Certificate', 'https://edistrict.up.gov.in/'],
     ['Cast Certificate', 'https://edistrict.up.gov.in/'],

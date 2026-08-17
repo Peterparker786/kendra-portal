@@ -41,6 +41,7 @@ function docIcon(type) {
 const SERVICES = [
   { type: 'Aadhaar Card', icon: '🪪', desc: 'Aadhaar naya / update / correction', url: 'https://myaadhaar.uidai.gov.in/' },
   { type: 'Aadhaar Correction', icon: '✏️', desc: 'Aadhaar me sudhar — naam, DOB, address', url: 'https://myaadhaar.uidai.gov.in/' },
+  { type: 'PAN Card', icon: '🪪', desc: 'PAN naya / correction / reprint', url: 'https://www.proteantech.in/pan-india/index.html' },
   { type: 'Niwas Praman (Residence)', icon: '🏠', desc: 'Niwas praman patra', url: 'https://edistrict.up.gov.in/' },
   { type: 'Domicile Certificate', icon: '🏡', desc: 'Domicile certificate', url: 'https://edistrict.up.gov.in/' },
   { type: 'Cast Certificate', icon: '🧬', desc: 'Jati praman patra', url: 'https://edistrict.up.gov.in/' },

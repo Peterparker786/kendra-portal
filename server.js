@@ -91,6 +91,7 @@ app.post('/api/records', (req, res, next) => {
 const DOC_TYPES = [
   'Aadhaar Card',
   'Aadhaar Correction',
+  'PAN Card',
   'Niwas Praman (Residence)',
   'Domicile Certificate',
   'Cast Certificate',

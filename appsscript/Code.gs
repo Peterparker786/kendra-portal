@@ -53,6 +53,7 @@ const DOCUMENT_COLUMNS = [
 const DOC_TYPES = [
   'Aadhaar Card',
   'Aadhaar Correction',
+  'PAN Card',
   'Niwas Praman (Residence)',
   'Domicile Certificate',
   'Cast Certificate',
