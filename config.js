@@ -46,3 +46,11 @@ export const GEMINI_API_KEY = process.env.GEMINI_API_KEY || process.env.GOOGLE_A
 export const NARA_ROUTER_KEY = process.env.NARA_ROUTER_KEY || '';
 export const NARA_ROUTER_BASE = process.env.NARA_ROUTER_BASE || 'https://router.bynara.id/v1';
 export const NARA_ROUTER_MODEL = process.env.NARA_ROUTER_MODEL || 'agnes-2.0-flash';
+
+// ---------------------------------------------------------------
+// 4) GOOGLE SHEET URL — topbar ka "Open Excel (Google Sheet)" button
+//    ise kholta hai. Apni spreadsheet ka link yahan daalo.
+//    .env me:  GOOGLE_SHEET_URL=https://docs.google.com/spreadsheets/d/.../edit
+export const GOOGLE_SHEET_URL =
+  process.env.GOOGLE_SHEET_URL ||
+  'https://docs.google.com/spreadsheets/d/19Ob3O5bCtQuOSRsbpSdAOTOm3pv0O1gGt-1ek8cSzpI/edit';

@@ -7,7 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument } from './extract.js';
 import * as store from './db.js';
-import { GOOGLE_SHEET_WEBHOOK_URL } from './config.js';
+import { GOOGLE_SHEET_WEBHOOK_URL, GOOGLE_SHEET_URL } from './config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -114,6 +114,11 @@ const DOC_TYPES = [
   'Scholarship Documents',
   'Other',
 ];
+
+// ---- settings: frontend ke liye (jaise Google Sheet ka link) ----
+app.get('/api/settings', (_req, res) => {
+  res.json({ sheetUrl: GOOGLE_SHEET_URL || '' });
+});
 
 app.get('/api/doc-types', (_req, res, next) => {
   try {

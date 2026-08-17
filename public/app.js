@@ -581,11 +581,27 @@ function renderServices() {
   }
 }
 
+// ---------------------------------------------------------------- topbar sheet button
+
+function wireSheetBtn() {
+  const btn = $('#sheetBtn');
+  fetch('/api/settings')
+    .then((r) => r.json())
+    .then((d) => {
+      if (d && d.sheetUrl) {
+        btn.hidden = false;
+        btn.addEventListener('click', () => window.open(d.sheetUrl, '_blank', 'noopener'));
+      }
+    })
+    .catch(() => {});
+}
+
 // ---------------------------------------------------------------- boot
 
 wireUpload();
 wirePreview();
 wireDashboard();
+wireSheetBtn();
 renderServices();
 loadDocTypes();
 loadServices();
