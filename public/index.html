@@ -212,6 +212,19 @@
           <label for="passportCount">Kitni photos chahiye?</label>
           <input type="number" id="passportCount" min="1" max="100" value="8" class="num-input" />
         </div>
+        <div class="opt-group">
+          <label>Background (optional)</label>
+          <div class="bg-row">
+            <label class="swatch" title="Original (koi change nahi)"><input type="radio" name="pbg" value="" checked /><span class="swatch-box orig">🎨</span></label>
+            <label class="swatch" title="White"><input type="radio" name="pbg" value="#ffffff" /><span class="swatch-box" style="background:#ffffff"></span></label>
+            <label class="swatch" title="Light Blue"><input type="radio" name="pbg" value="#a9d0f5" /><span class="swatch-box" style="background:#a9d0f5"></span></label>
+            <label class="swatch" title="Grey"><input type="radio" name="pbg" value="#d3d3d3" /><span class="swatch-box" style="background:#d3d3d3"></span></label>
+            <label class="swatch" title="Red"><input type="radio" name="pbg" value="#e53935" /><span class="swatch-box" style="background:#e53935"></span></label>
+            <label class="swatch custom" title="Custom color"><input type="radio" name="pbg" value="custom" /><span class="swatch-box" id="customBgSwatch" style="background:#4caf50"></span></label>
+            <input type="color" id="customBgColor" value="#4caf50" style="width:34px;height:34px;border:none;background:none;cursor:pointer" title="Custom color chuno" />
+          </div>
+          <p class="hint" style="margin-top:4px">Photo ka asli background hatkar solid color aa jayega</p>
+        </div>
       </div>
       <div style="margin-top:12px">
         <button class="btn primary big" id="passportMakeBtn" disabled>🖨 Sheet banao</button>

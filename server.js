@@ -64,6 +64,7 @@ app.post('/api/passport', upload.single('file'), async (req, res, next) => {
     const out = await makePassportSheet(req.file.buffer, {
       size: req.body.size || '2x2',
       count: req.body.count || 8,
+      bg: req.body.bg || '',
     });
     res.json(out);
   } catch (err) {

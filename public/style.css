@@ -642,3 +642,36 @@ body {
   font-size: 16px;
   font-weight: 700;
 }
+
+/* passport background swatches */
+.bg-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.swatch {
+  cursor: pointer;
+}
+.swatch input {
+  display: none;
+}
+.swatch-box {
+  display: block;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 2px solid #444;
+  transition: border-color .15s, transform .15s;
+}
+.swatch-box.orig {
+  background: linear-gradient(135deg, #ffd1d1 25%, #fff 25%, #fff 50%, #d1e8ff 50%, #d1e8ff 75%, #d1ffd1 75%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+}
+.swatch input:checked + .swatch-box {
+  border-color: var(--accent, #4f8cff);
+  transform: scale(1.12);
+  box-shadow: 0 0 0 2px rgba(79, 140, 255, .3);
+}

@@ -671,6 +671,16 @@ function wirePassport() {
   $('#passportClose').addEventListener('click', () => {
     modal.hidden = true;
   });
+  const customColor = $('#customBgColor');
+  const customSwatch = $('#customBgSwatch');
+  customColor.addEventListener('input', () => {
+    customSwatch.style.background = customColor.value;
+  });
+  document.querySelectorAll('input[name="pbg"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      if (r.value === 'custom') customColor.click();
+    });
+  });
   modal.addEventListener('click', (e) => {
     if (e.target === modal) modal.hidden = true;
   });
@@ -696,6 +706,9 @@ function wirePassport() {
     fd.append('file', passportFile);
     fd.append('size', size);
     fd.append('count', String(count));
+    let bg = (document.querySelector('input[name="pbg"]:checked') || {}).value || '';
+    if (bg === 'custom') bg = $('#customBgColor').value;
+    fd.append('bg', bg);
     fetch('/api/passport', { method: 'POST', body: fd })
       .then(async (r) => {
         const d = await r.json();
