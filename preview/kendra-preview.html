@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kendra Portal - Preview</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; margin: 0; background: #f3f5f9; color: #1c2333; font-size: 14px; }
+  .tabs { background: #312e81; display: flex; gap: 4px; padding: 10px 16px; }
+  .tabs button { font: inherit; font-weight: 600; border: none; background: rgba(255,255,255,.12); color: #e0e7ff; padding: 8px 18px; border-radius: 8px 8px 0 0; cursor: pointer; }
+  .tabs button.active { background: #f3f5f9; color: #312e81; }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 16px; }
+  .note { background: #fef9c3; border: 1px solid #fde68a; color: #713f12; border-radius: 8px; padding: 8px 12px; font-size: 12.5px; margin-bottom: 14px; }
+  h1 { font-size: 18px; margin: 0 0 4px; }
+  .sub { color: #6b7280; font-size: 12.5px; margin: 0 0 14px; }
+  .card { background: #fff; border: 1px solid #e4e8f0; border-radius: 10px; padding: 14px 16px; margin-bottom: 14px; }
+  .label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: #6b7280; margin: 12px 0 5px; }
+  .label:first-child { margin-top: 0; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+  textarea { width: 100%; min-height: 80px; border: 1px solid #c7cde0; border-radius: 8px; padding: 8px; font: 12.5px/1.4 monospace; resize: vertical; }
+  input, select { width: 100%; border: 1px solid #c7cde0; border-radius: 8px; padding: 8px 10px; font: inherit; background: #fff; }
+  .field label { display: block; font-size: 11.5px; color: #4b5563; margin: 0 0 3px; font-weight: 600; }
+  button { font: inherit; font-weight: 600; border: 1px solid #c7cde0; background: #fff; padding: 8px 14px; border-radius: 8px; cursor: pointer; }
+  button:hover { background: #f4f6fb; }
+  button.primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+  button.primary:hover { background: #4338ca; }
+  .msg { display: none; padding: 10px 12px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
+  .msg.ok { display: block; background: #d1fae5; color: #065f46; }
+  .msg.err { display: block; background: #fee2e2; color: #991b1b; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  th, td { border: 1px solid #e4e8f0; padding: 6px 8px; text-align: left; }
+  th { background: #f7f8fc; font-size: 12px; }
+  .ok-badge { color: #059669; font-weight: 700; }
+  .pend-badge { color: #d97706; font-weight: 700; }
+  .stats { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 10px; }
+  .stat { background: #eef0ff; border-radius: 8px; padding: 8px 14px; }
+  .stat b { font-size: 16px; display: block; }
+  .stat span { font-size: 11.5px; color: #4b5563; }
+</style>
+</head>
+<body>
+
+<div class="tabs">
+  <button id="tabFormBtn" class="active" onclick="showTab('form')">1. Entry Form</button>
+  <button id="tabDashBtn" onclick="showTab('dash')">2. Dashboard (sheet view)</button>
+</div>
+
+<!-- ================= ENTRY FORM TAB ================= -->
+<div id="tabForm" class="wrap">
+  <div class="note">PREVIEW MODE - yeh demo hai. "Data bharo" aur Save kaam karta hai, par data kisi sheet me save NAHI hota. Asli me yeh form aapke Google Sheet me save karega.</div>
+  <h1>Kendra Portal - Client Document Entry</h1>
+  <p class="sub">Document ka text paste karo (ya seedha details bharo) -&gt; check karo -&gt; Save. Client ki profile me add ho jayega aur Dashboard dropdown me aa jayega.</p>
+
+  <div class="msg" id="msg"></div>
+
+  <div class="card">
+    <div class="label">1. Document ka text paste karo (Aadhaar / Niwas Praman / Registration...) - optional</div>
+    <textarea id="docText" placeholder="Example (Aadhaar letter):
+Name
+Ramesh Kumar
+Father / Husband Name
+Suresh Kumar
+Date of Birth
+12/03/1990
+Gender
+Male
+Aadhaar Number
+1234 5678 9012
+Address
+14 MG Road, Pune"></textarea>
+    <div style="margin-top:8px">
+      <button class="primary" id="parseBtn">Data bharo</button>
+      <button id="clearBtn">Clear</button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">2. Client ki details</div>
+    <div class="grid">
+      <div class="field"><label>Client Name *</label><input type="text" id="custName" placeholder="e.g. Ramesh Kumar"></div>
+      <div class="field"><label>Father / Husband Name</label><input type="text" id="custFather" placeholder="e.g. Suresh Kumar"></div>
+      <div class="field"><label>Phone / Email</label><input type="text" id="custPhone" placeholder="10 digit mobile"></div>
+      <div class="field"><label>Aadhaar No</label><input type="text" id="custAadhaar" placeholder="12 digits"></div>
+      <div class="field"><label>Date of Birth</label><input type="text" id="custDob" placeholder="e.g. 12/03/1990"></div>
+      <div class="field"><label>Gender</label><input type="text" id="custGender" placeholder="Male / Female / Other"></div>
+      <div class="field" style="grid-column:1/-1"><label>Address</label><input type="text" id="custAddress" placeholder="Poora address"></div>
+      <div class="field"><label>University Reg No</label><input type="text" id="custRegNo" placeholder="(agar hai)"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="label">3. Document ki details</div>
+    <div class="grid">
+      <div class="field"><label>Document Type *</label><select id="docType"></select></div>
+      <div class="field"><label>Document No</label><input type="text" id="docNo" placeholder="e.g. 1234-5678-9012"></div>
+      <div class="field"><label>Issue Date</label><input type="text" id="docIssue" placeholder="e.g. 10/01/2024"></div>
+      <div class="field"><label>Valid Till</label><input type="text" id="docValid" placeholder="e.g. 09/01/2029"></div>
+      <div class="field"><label>Issued By</label><input type="text" id="docIssuedBy" placeholder="e.g. Tehsildar Office"></div>
+      <div class="field"><label>Status</label><select id="docStatus"></select></div>
+      <div class="field" style="grid-column:1/-1"><label>Remarks</label><input type="text" id="docRemarks" placeholder="Koi note (optional)"></div>
+    </div>
+    <div style="margin-top:10px">
+      <button class="primary" id="saveBtn" style="width:100%;padding:11px">Save - client ke profile me add karo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ================= DASHBOARD TAB ================= -->
+<div id="tabDash" class="wrap" style="display:none">
+  <div class="note">PREVIEW MODE - yeh dikhata hai ki aapki Google Sheet ka Dashboard tab kaisa dikhega (sample data ke saath).</div>
+  <h1>Dashboard (sheet me yeh dikhega)</h1>
+  <p class="sub">SELECT CLIENT dropdown me se client chuno - uske documents, checklist aur stats live dikhenge.</p>
+
+  <div class="card">
+    <div class="label">SELECT CLIENT (dropdown)</div>
+    <select id="dashClient" style="max-width:340px"></select>
+  </div>
+
+  <div class="card">
+    <div class="label">Documents of selected client</div>
+    <div id="dashDocs"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Document checklist - kaunsa submit hua, kaunsa pending</div>
+    <div id="dashChecklist"></div>
+  </div>
+
+  <div class="card">
+    <div class="label">Stats</div>
+    <div class="stats">
+      <div class="stat"><b id="statClients">0</b><span>Total clients</span></div>
+      <div class="stat"><b id="statDocs">0</b><span>Total documents</span></div>
+      <div class="stat"><b id="statClientDocs">0</b><span>Selected client ke documents</span></div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============ shared data ============ */
+var DOC_TYPES = ['Aadhaar Card','Aadhaar Correction','Niwas Praman (Residence)','Domicile Certificate','Cast Certificate','Income Certificate','Birth Certificate','Death Certificate','Marriage Registration','Voter ID','Ration Card','Student / University Registration','Scholarship Documents','Other'];
+var STATUSES = ['Submitted', 'Pending', 'Approved', 'Rejected', 'Issued'];
+
+/* ============ tabs ============ */
+function showTab(name) {
+  document.getElementById('tabForm').style.display = name === 'form' ? 'block' : 'none';
+  document.getElementById('tabDash').style.display = name === 'dash' ? 'block' : 'none';
+  document.getElementById('tabFormBtn').className = name === 'form' ? 'active' : '';
+  document.getElementById('tabDashBtn').className = name === 'dash' ? 'active' : '';
+}
+
+/* ============ parsing (Code.gs jaisa hi logic, browser me) ============ */
+function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+function isLabelLike(s) {
+  var t = String(s).trim().toLowerCase();
+  return /^(name|gender|address|date\s*of\s*birth|dob|father|aadhaar|phone|mobile|email|registration|issue)/.test(t);
+}
+function parseDocumentText(text) {
+  var lines = String(text || '').split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+  var fields = [], seen = {};
+  function add(key, value) { if (!value || seen[key]) return; fields.push({ key: key, value: String(value).trim() }); seen[key] = true; }
+  var LABELS = [
+    { key: 'Customer Name', names: ['applicant name', 'client name', 'customer name', 'name'] },
+    { key: "Father's Name", names: ["father's name", 'father / husband name', 'father name', 'husband name'] },
+    { key: 'Date of Birth', names: ['date of birth', 'dob'] },
+    { key: 'Gender', names: ['gender'] },
+    { key: 'Aadhaar No', names: ['aadhaar number', 'aadhaar no', 'aadhar number', 'aadhar no', 'uidai no'] },
+    { key: 'Address', names: ['address'] },
+    { key: 'Phone / Email', names: ['phone', 'mobile', 'contact', 'email'] }
+  ];
+  for (var i = 0; i < lines.length; i++) {
+    var line = lines[i];
+    for (var li = 0; li < LABELS.length; li++) {
+      var lab = LABELS[li];
+      if (seen[lab.key]) continue;
+      for (var ni = 0; ni < lab.names.length; ni++) {
+        var nm = lab.names[ni];
+        var inline = new RegExp('^' + escapeRe(nm) + '\\s*:?\\s*(.+)$', 'i').exec(line);
+        if (inline && inline[1] && !isLabelLike(inline[1])) { add(lab.key, inline[1]); break; }
+        if (line.toLowerCase() === nm.toLowerCase()) {
+          var next = lines[i + 1];
+          if (next && !isLabelLike(next)) { add(lab.key, next); break; }
+        }
+      }
+    }
+  }
+  if (!seen['Aadhaar No']) {
+    for (i = 0; i < lines.length; i++) {
+      if (/phone|mobile|contact/i.test(lines[i])) continue;
+      var m = lines[i].match(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/);
+      if (m) { add('Aadhaar No', m[0]); break; }
+    }
+  }
+  if (!seen['Phone / Email']) {
+    for (i = 0; i < lines.length; i++) {
+      var m2 = lines[i].match(/\b[6-9]\d{9}\b/);
+      if (m2) { add('Phone / Email', m2[0]); break; }
+    }
+  }
+  var customer = {}, document = {};
+  var TYPE_MAP = [
+    [/niwas|residen|rasid|mool/i, 'Niwas Praman (Residence)'],
+    [/domicile/i, 'Domicile Certificate'],
+    [/aadhaar|aadhar|uidai/i, 'Aadhaar Card'],
+    [/cast|jati/i, 'Cast Certificate'],
+    [/income|aay\b/i, 'Income Certificate'],
+    [/birth|janm/i, 'Birth Certificate'],
+    [/death|mrityu/i, 'Death Certificate'],
+    [/marriage|shadi|vivaah/i, 'Marriage Registration'],
+    [/voter|matdata/i, 'Voter ID'],
+    [/ration|food\s*security/i, 'Ration Card'],
+    [/scholarship|chhatravritti/i, 'Scholarship Documents'],
+    [/student|university|enroll/i, 'Student / University Registration']
+  ];
+  for (i = 0; i < fields.length; i++) {
+    var f = fields[i];
+    if (f.key === 'Customer Name') customer.name = f.value;
+    else if (f.key === "Father's Name") customer.father = f.value;
+    else if (f.key === 'Date of Birth') customer.dob = f.value;
+    else if (f.key === 'Gender') customer.gender = f.value;
+    else if (f.key === 'Aadhaar No') customer.aadhaar = f.value;
+    else if (f.key === 'Address') customer.address = f.value;
+    else if (f.key === 'Phone / Email') customer.phone = f.value;
+  }
+  for (i = 0; i < TYPE_MAP.length; i++) {
+    if (TYPE_MAP[i][0].test(String(text || '').toLowerCase())) { document.type = TYPE_MAP[i][1]; break; }
+  }
+  return { customer: customer, document: document };
+}
+
+/* ============ entry form ============ */
+function $(id) { return document.getElementById(id); }
+function msg(text, type) {
+  var el = $('msg');
+  el.textContent = text;
+  el.className = 'msg ' + (type || 'ok');
+}
+function setVal(id, v) { if (v) $(id).value = v; }
+
+var typeSel = $('docType');
+typeSel.innerHTML = '<option value="">- Select -</option>' + DOC_TYPES.map(function (t) {
+  return '<option value="' + t + '">' + t + '</option>';
+}).join('');
+var statusSel = $('docStatus');
+statusSel.innerHTML = STATUSES.map(function (s) {
+  return '<option value="' + s + '"' + (s === 'Submitted' ? ' selected' : '') + '>' + s + '</option>';
+}).join('');
+
+$('parseBtn').onclick = function () {
+  var text = $('docText').value;
+  if (!text.trim()) { msg('Pehle document ka text paste karo (ya details khud bharo)', 'err'); return; }
+  var r = parseDocumentText(text);
+  setVal('custName', r.customer.name);
+  setVal('custFather', r.customer.father);
+  setVal('custPhone', r.customer.phone);
+  setVal('custAadhaar', r.customer.aadhaar);
+  setVal('custDob', r.customer.dob);
+  setVal('custGender', r.customer.gender);
+  setVal('custAddress', r.customer.address);
+  if (r.document.type) $('docType').value = r.document.type;
+  msg('Data bhar diya - jo galat ho usse edit karo, phir Save.');
+};
+$('clearBtn').onclick = function () { $('docText').value = ''; msg(''); };
+$('saveBtn').onclick = function () {
+  if (!$('custName').value.trim()) { msg('Client Name zaroori hai', 'err'); return; }
+  if (!$('docType').value) { msg('Document Type chuno', 'err'); return; }
+  msg('Demo mode: yeh form asli me "' + $('custName').value.trim() + '" ki profile me save karega. (Is preview me save nahi hota)');
+};
+
+/* ============ dashboard (sample data) ============ */
+var CLIENTS = [
+  { id: 'CUST-001', name: 'Ramesh Kumar', phone: '9876543210', aadhaar: '1234 5678 9012', dob: '12/03/1990', gender: 'Male', address: '14 MG Road, Pune', father: 'Suresh Kumar' },
+  { id: 'CUST-002', name: 'Priya Sharma', phone: '9123456780', aadhaar: '2345 6789 0123', dob: '05/07/1995', gender: 'Female', address: '22 Lake View Rd, Nagpur', father: 'Mahesh Sharma' }
+];
+var RECORDS = [
+  { customer: 'Ramesh Kumar', type: 'Aadhaar Card', docNo: '1234 5678 9012', issue: '10/01/2024', valid: '', issuedBy: 'UIDAI', status: 'Submitted', remarks: '' },
+  { customer: 'Ramesh Kumar', type: 'Niwas Praman (Residence)', docNo: 'NP-2024-5512', issue: '18/03/2024', valid: '17/03/2029', issuedBy: 'Tehsildar Office', status: 'Issued', remarks: '' },
+  { customer: 'Priya Sharma', type: 'Cast Certificate', docNo: 'CC-2203-8891', issue: '02/02/2024', valid: '', issuedBy: 'SDM Office', status: 'Pending', remarks: 'document verification baaki' }
+];
+
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+
+var dashSel = $('dashClient');
+dashSel.innerHTML = '<option value="">- Select -</option>' + CLIENTS.map(function (c) {
+  return '<option value="' + esc(c.name) + '">' + esc(c.name) + '</option>';
+}).join('');
+
+$('statClients').textContent = CLIENTS.length;
+$('statDocs').textContent = RECORDS.length;
+
+dashSel.onchange = function () {
+  var name = dashSel.value;
+  var docs = RECORDS.filter(function (r) { return r.customer === name; });
+  $('statClientDocs').textContent = docs.length;
+
+  if (!name) {
+    $('dashDocs').innerHTML = '<p class="sub" style="margin:0">Koi client select nahi kiya.</p>';
+    $('dashChecklist').innerHTML = '<p class="sub" style="margin:0">Koi client select nahi kiya.</p>';
+    return;
+  }
+
+  if (!docs.length) {
+    $('dashDocs').innerHTML = '<p class="sub" style="margin:0">No documents yet.</p>';
+  } else {
+    var rows = docs.map(function (r) {
+      return '<tr><td>' + esc(r.type) + '</td><td>' + esc(r.docNo) + '</td><td>' + esc(r.issue) + '</td><td>' + esc(r.valid || '-') + '</td><td>' + esc(r.issuedBy) + '</td><td>' + esc(r.status) + '</td><td>' + esc(r.remarks || '-') + '</td></tr>';
+    }).join('');
+    $('dashDocs').innerHTML = '<div style="overflow-x:auto"><table><thead><tr><th>Document Type</th><th>Document No</th><th>Issue Date</th><th>Valid Till</th><th>Issued By</th><th>Status</th><th>Remarks</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  }
+
+  var types = DOC_TYPES.map(function (t) {
+    var done = docs.some(function (d) { return d.type === t; });
+    return '<tr><td>' + esc(t) + '</td><td>' + (done ? '<span class="ok-badge">[OK] Submitted</span>' : '<span class="pend-badge">Pending</span>') + '</td></tr>';
+  }).join('');
+  $('dashChecklist').innerHTML = '<div style="overflow-x:auto"><table><thead><tr><th>Document Type</th><th>Status</th></tr></thead><tbody>' + types + '</tbody></table></div>';
+};
+
+dashSel.value = '';
+</script>
+</body>
+</html>

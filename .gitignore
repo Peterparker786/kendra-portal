@@ -1,0 +1,22 @@
+# ---- secrets ----
+.env
+
+# ---- customer data (PII) ----
+data/
+
+# ---- heavy / generated ----
+node_modules/
+tessdata/
+.tools/
+.freebuff/
+
+# ---- scratch / duplicate OCR data (asli tessdata/ folder me hai) ----
+*.traineddata
+.parse_check.js
+
+# ---- logs ----
+*.log
+
+# ---- OS / editor ----
+Thumbs.db
+.DS_Store

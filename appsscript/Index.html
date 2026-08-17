@@ -1,0 +1,620 @@
+<!-- FILE: Index.html   VERSION: 4.2   (pure ASCII - copy-paste safe) -->
+<!--
+  Kendra Portal - Client Document Entry (Google Apps Script web app)
+  Upload PDF/JPG/PNG/TXT/CSV -> browser me hi data extract hota hai
+  (pdf.js + tesseract.js CDN se) -> preview me edit -> Save -> Google Sheet.
+  v4.2 = rotateAuto (tedi photo khud seedhi ho jati hai OCR se pehle)
+  v4.1 = Hindi+English OCR (eng+hin), photo preprocess (upscale + grayscale),
+         scanned PDF ke pages bhi OCR ho jate hain, aur fields khali nikle to
+         raw text khud khul jata hai taaki pata chale OCR ne kya nikala.
+  Agar PDF/image se text na nikle to paste box se bhi bhar sakte ho.
+-->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif; margin: 0; background: #f3f5fb; color: #0f172a; font-size: 14px; line-height: 1.5; }
+    .topbar { background: linear-gradient(135deg, #1e1b4b, #4f46e5); color: #fff; padding: 18px 20px 20px; }
+    .topbar h1 { margin: 0; font-size: 19px; }
+    .topbar p { margin: 3px 0 0; font-size: 12.5px; opacity: .8; }
+    .wrap { max-width: 780px; margin: 0 auto; padding: 14px 16px 40px; }
+    .card { background: #fff; border: 1px solid #e3e8f1; border-radius: 14px; box-shadow: 0 1px 3px rgba(15,23,42,.05), 0 12px 30px -14px rgba(15,23,42,.14); padding: 16px 18px; margin-bottom: 14px; }
+    .label { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; color: #64748b; margin: 14px 0 6px; }
+    .label:first-child { margin-top: 0; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
+    .field label { display: block; font-size: 11.5px; color: #475569; margin: 0 0 3px; font-weight: 600; }
+    input, select, textarea { width: 100%; border: 1px solid #d4dae6; border-radius: 9px; padding: 8px 10px; font: inherit; background: #fff; color: #0f172a; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    textarea { min-height: 70px; font: 12.5px/1.45 monospace; resize: vertical; }
+    .btn { font: inherit; font-weight: 600; border: 1px solid #d4dae6; background: #fff; color: #0f172a; padding: 8px 15px; border-radius: 9px; cursor: pointer; transition: all .15s; }
+    .btn:hover { background: #f5f7fb; }
+    .btn.primary { background: linear-gradient(135deg, #6366f1, #8b5cf6); border-color: transparent; color: #fff; box-shadow: 0 8px 18px -8px rgba(99,102,241,.6); }
+    .btn.primary:hover { filter: brightness(1.06); }
+    .btn.primary:disabled { opacity: .55; cursor: not-allowed; }
+    .btn.ghost { border-color: transparent; background: transparent; color: #4f46e5; font-size: 12.5px; }
+    .btn.ghost:hover { background: #eef0ff; }
+    .btn.big { width: 100%; padding: 11px; font-size: 15px; margin-top: 12px; }
+    .dropzone { border: 2px dashed #c9cfff; border-radius: 12px; background: linear-gradient(180deg, #fbfbff, #f6f7ff); padding: 22px 16px; text-align: center; cursor: pointer; transition: border-color .2s, background .2s; }
+    .dropzone:hover, .dropzone.drag { border-color: #6366f1; background: #eef0ff; }
+    .dropzone .icon { font-size: 30px; }
+    .dropzone .t { font-weight: 700; font-size: 15px; margin: 6px 0 2px; }
+    .dropzone .s { color: #64748b; font-size: 12.5px; margin: 0 0 8px; }
+    .fmt { display: inline-block; background: #eef0ff; color: #4f46e5; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; margin: 2px; }
+    .msg { display: none; padding: 10px 12px; border-radius: 9px; font-size: 13px; margin-bottom: 12px; }
+    .msg.ok { display: block; background: #d1fae5; color: #065f46; }
+    .msg.err { display: block; background: #fee2e2; color: #991b1b; }
+    .msg.busy { display: block; background: #eef0ff; color: #4338ca; }
+    .muted { color: #64748b; font-size: 12px; }
+    .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+    .or { text-align: center; color: #94a3b8; font-size: 12px; margin: 12px 0 6px; }
+    .raw { margin-top: 12px; }
+    .raw summary { cursor: pointer; color: #4f46e5; font-size: 12.5px; font-weight: 600; }
+    .raw pre { background: #0f172a; color: #cbd5e1; padding: 12px; border-radius: 10px; font-size: 11.5px; max-height: 180px; overflow: auto; white-space: pre-wrap; word-break: break-word; margin-top: 8px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+    th, td { border-bottom: 1px solid #e3e8f1; padding: 7px 8px; text-align: left; font-size: 12.5px; vertical-align: top; }
+    th { background: #f7f8fc; font-size: 11px; color: #475569; }
+    .badge { display: inline-block; border-radius: 999px; padding: 1px 9px; font-size: 11px; font-weight: 600; background: #eef0ff; color: #4f46e5; }
+    .empty { color: #64748b; font-style: italic; padding: 12px 2px; }
+    select#dashSelect { margin-bottom: 6px; }
+  </style>
+</head>
+<body>
+  <div class="topbar">
+    <h1>Kendra Portal - Client Document Entry</h1>
+    <p>Upload (PDF / JPG / PNG) -&gt; data khud niklega -&gt; preview me theek karo -&gt; Save -&gt; Google Sheet + Dashboard</p>
+  </div>
+
+  <div class="wrap">
+    <div class="msg" id="msg"></div>
+
+    <!-- ============ 1. UPLOAD ============ -->
+    <div class="card">
+      <div class="label">1. Document upload karo (PDF / JPG / PNG / TXT / CSV)</div>
+      <div class="dropzone" id="dropzone">
+        <input type="file" id="fileInput" accept=".pdf,.jpg,.jpeg,.png,.txt,.csv" hidden>
+        <div class="icon">&#128196;</div>
+        <p class="t">File yahan drop karo ya click karo</p>
+        <p class="s">Aadhaar letter, Niwas Praman, Registration, Certificate...</p>
+        <div>
+          <span class="fmt">PDF</span><span class="fmt">JPG</span><span class="fmt">PNG</span>
+          <span class="fmt">Photo / Scan</span><span class="fmt">TXT / CSV</span>
+        </div>
+        <p class="s" style="margin-top:6px">Photo seedha, achhi light me lo - Hindi + English dono padh leta hai</p>
+      </div>
+
+      <div class="or">- ya document ka text paste karo -</div>
+      <textarea id="pasteText" placeholder="PDF/photo me text select nahi hota (scanned) to yahan paste karo:
+Name
+Ramesh Kumar
+Father / Husband Name
+Suresh Kumar
+Date of Birth
+12/03/1990
+Aadhaar Number
+1234 5678 9012"></textarea>
+      <div class="actions">
+        <button class="ghost" id="clearBtn">Clear</button>
+        <button class="primary" id="parseBtn">Data bharo</button>
+      </div>
+    </div>
+
+    <!-- ============ 2. PREVIEW ============ -->
+    <div class="card" id="previewCard" hidden>
+      <div class="label">2. Preview - Client ki details <span class="muted">(jo galat ho edit karo)</span></div>
+      <div class="grid">
+        <div class="field"><label>Client Name *</label><input type="text" id="custName" placeholder="e.g. Ramesh Kumar"></div>
+        <div class="field"><label>Father / Husband Name</label><input type="text" id="custFather" placeholder="e.g. Suresh Kumar"></div>
+        <div class="field"><label>Phone / Email</label><input type="text" id="custPhone" placeholder="10 digit mobile"></div>
+        <div class="field"><label>Aadhaar No</label><input type="text" id="custAadhaar" placeholder="12 digits"></div>
+        <div class="field"><label>Date of Birth</label><input type="text" id="custDob" placeholder="e.g. 12/03/1990"></div>
+        <div class="field"><label>Gender</label><input type="text" id="custGender" placeholder="Male / Female / Other"></div>
+        <div class="field" style="grid-column:1/-1"><label>Address</label><input type="text" id="custAddress" placeholder="Poora address"></div>
+        <div class="field"><label>University Reg No</label><input type="text" id="custRegNo" placeholder="(agar hai)"></div>
+      </div>
+
+      <div class="label">Document ki details</div>
+      <div class="grid">
+        <div class="field"><label>Document Type *</label><select id="docType"></select></div>
+        <div class="field"><label>Document No</label><input type="text" id="docNo" placeholder="e.g. 1234-5678-9012"></div>
+        <div class="field"><label>Issue Date</label><input type="text" id="docIssue" placeholder="e.g. 10/01/2024"></div>
+        <div class="field"><label>Valid Till</label><input type="text" id="docValid" placeholder="e.g. 09/01/2029"></div>
+        <div class="field"><label>Issued By</label><input type="text" id="docIssuedBy" placeholder="e.g. Tehsildar Office"></div>
+        <div class="field"><label>Status</label><select id="docStatus"></select></div>
+        <div class="field" style="grid-column:1/-1"><label>Remarks</label><input type="text" id="docRemarks" placeholder="Koi note (optional)"></div>
+      </div>
+
+      <details class="raw">
+        <summary>Extracted raw text dekho</summary>
+        <pre id="rawText"></pre>
+      </details>
+
+      <button class="btn primary big" id="saveBtn">Save - client ke profile me add karo</button>
+    </div>
+
+    <!-- ============ 3. DASHBOARD ============ -->
+    <div class="card">
+      <div class="label">3. Dashboard - client ke documents dekho</div>
+      <select id="dashSelect"><option value="">- Client chuno -</option></select>
+      <button class="ghost" id="sheetBtn" style="margin-left:6px">Open Google Sheet</button>
+      <div id="dashDocs"><p class="empty">Client chuno - uske saare documents yahan dikhenge.</p></div>
+    </div>
+  </div>
+
+  <script>
+    /* ============================================================
+       Kendra Portal v4 - client-side extraction (pdf.js + tesseract)
+       ============================================================ */
+    var DOC_TYPES = [];
+    var STATUSES = ['Submitted', 'Pending', 'Approved', 'Rejected', 'Issued'];
+    var currentFile = '';
+
+    function $(id) { return document.getElementById(id); }
+    function msg(text, type) {
+      var el = $('msg');
+      el.textContent = text;
+      el.className = 'msg ' + (type || 'ok');
+    }
+
+    /* ================= extraction (pure JS, testable) ================= */
+    // ---- EXTRACTION START ----
+    function escapeRe(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+    function isLabelLike(s) {
+      var t = String(s).trim().toLowerCase();
+      return /^(name|gender|address|date\s*of\s*birth|dob|father|aadhaar|phone|mobile|email|registration|issue)/.test(t);
+    }
+    function extractFromText(rawText) {
+      // Hindi labels ko English me normalize (unicode escapes = ASCII safe file)
+      var text = String(rawText || '')
+        .replace(/\u092a\u093f\u0924\u093e \u0915\u093e \u0928\u093e\u092e/g, "Father's Name")
+        .replace(/\u092a\u0924\u093f \u0915\u093e \u0928\u093e\u092e/g, "Father's Name")
+        .replace(/\u091c\u0928\u094d\u092e \u0924\u093f\u0925\u093f/g, 'Date of Birth')
+        .replace(/\u091c\u0928\u094d\u092e \u0926\u093f\u0928\u093e\u0902\u0915/g, 'Date of Birth')
+        .replace(/\u0906\u0927\u093e\u0930 \u0938\u0902\u0916\u094d\u092f\u093e/g, 'Aadhaar No')
+        .replace(/\u0906\u0927\u093e\u0930 \u0928\u0902\u092c\u0930/g, 'Aadhaar No')
+        .replace(/\u0938\u094d\u0925\u093e\u092f\u0940 \u092a\u0924\u093e/g, 'Address')
+        .replace(/\u092e\u094b\u092c\u093e\u0907\u0932 \u0928\u0902\u092c\u0930/g, 'Phone')
+        .replace(/\u092b\u094b\u0928 \u0928\u0902\u092c\u0930/g, 'Phone')
+        .replace(/\u0932\u093f\u0902\u0917/g, 'Gender')
+        .replace(/\u092a\u0924\u093e/g, 'Address')
+        .replace(/\u0928\u093e\u092e/g, 'Name');
+      var lines = text.split('\n').map(function (l) { return l.replace(/\u00a0/g, ' ').replace(/\s+/g, ' ').trim(); }).filter(Boolean);
+      var fields = [];
+      var seen = {};
+      function add(key, value) { if (!value || seen[key]) return; fields.push({ key: key, value: String(value).trim() }); seen[key] = true; }
+      var LABELS = [
+        { key: 'Customer Name', names: ['applicant name', 'client name', 'customer name', 'name'] },
+        { key: "Father's Name", names: ["father's name", 'father / husband name', 'father name', 'husband name'] },
+        { key: 'Date of Birth', names: ['date of birth', 'dob'] },
+        { key: 'Gender', names: ['gender'] },
+        { key: 'Aadhaar No', names: ['aadhaar number', 'aadhaar no', 'aadhar number', 'aadhar no', 'uidai no'] },
+        { key: 'Address', names: ['address'] },
+        { key: 'Phone / Email', names: ['phone', 'mobile', 'contact', 'email'] },
+        { key: 'Issued By', names: ['issued by', 'issuing authority', 'issued from'] }
+      ];
+      for (var i = 0; i < lines.length; i++) {
+        var line = lines[i];
+        for (var li = 0; li < LABELS.length; li++) {
+          var lab = LABELS[li];
+          if (seen[lab.key]) continue;
+          for (var ni = 0; ni < lab.names.length; ni++) {
+            var nm = lab.names[ni];
+            var m = new RegExp('^' + escapeRe(nm) + '\\s*:?\\s*(.+)$', 'i').exec(line);
+            if (m && m[1] && !isLabelLike(m[1])) { add(lab.key, m[1]); break; }
+            if (line.toLowerCase() === nm.toLowerCase()) {
+              var next = lines[i + 1];
+              if (next && !isLabelLike(next)) { add(lab.key, next); break; }
+            }
+          }
+        }
+      }
+      if (!seen['Aadhaar No']) {
+        for (var ai = 0; ai < lines.length; ai++) {
+          if (/phone|mobile|contact/i.test(lines[ai])) continue;
+          var am = lines[ai].match(/\b\d{4}[ -]?\d{4}[ -]?\d{4}\b/);
+          if (am) { add('Aadhaar No', am[0]); break; }
+        }
+      }
+      if (!seen['Phone / Email']) {
+        for (var pi = 0; pi < lines.length; pi++) {
+          var pm = lines[pi].match(/\b[6-9]\d{9}\b/);
+          if (pm) { add('Phone / Email', pm[0]); break; }
+        }
+      }
+      if (!seen['Document No']) {
+        for (var di = 0; di < lines.length; di++) {
+          var dm = lines[di].match(/(?:registration|reg|certificate|cert|application)\s*(?:no|number|#)\s*:?\s*([A-Za-z0-9][A-Za-z0-9/._-]{3,25})/i);
+          if (dm) { add('Document No', dm[1]); break; }
+        }
+      }
+      if (!seen['Issue Date']) {
+        for (var ii = 0; ii < lines.length; ii++) {
+          var im = lines[ii].match(/(?:issue|issued|date)\s*(?:date)?\s*:?\s*([0-9]{1,2}[-\/][0-9]{1,2}[-\/][0-9]{2,4})/i);
+          if (im) { add('Issue Date', im[1]); break; }
+        }
+      }
+      if (!seen['Valid Till']) {
+        for (var vi = 0; vi < lines.length; vi++) {
+          var vm = lines[vi].match(/valid(?:\s*(?:till|upto|up\s*to))?\s*:?\s*([0-9]{1,2}[-\/][0-9]{1,2}[-\/][0-9]{2,4})/i);
+          if (vm) { add('Valid Till', vm[1]); break; }
+        }
+      }
+      var customer = {};
+      var document = {};
+      for (var f = 0; f < fields.length; f++) {
+        var key = fields[f].key;
+        if (key === 'Customer Name') customer.name = fields[f].value;
+        else if (key === "Father's Name") customer.father = fields[f].value;
+        else if (key === 'Date of Birth') customer.dob = fields[f].value;
+        else if (key === 'Gender') customer.gender = fields[f].value;
+        else if (key === 'Aadhaar No') customer.aadhaar = fields[f].value;
+        else if (key === 'Address') customer.address = fields[f].value;
+        else if (key === 'Phone / Email') customer.phone = fields[f].value;
+        else if (key === 'Document No') document.docNo = fields[f].value;
+        else if (key === 'Issue Date') document.issueDate = fields[f].value;
+        else if (key === 'Valid Till') document.validTill = fields[f].value;
+        else if (key === 'Issued By') document.issuedBy = fields[f].value;
+      }
+      var TYPE_MAP = [
+        [/niwas|residen|rasid|mool/i, 'Niwas Praman (Residence)'],
+        [/domicile/i, 'Domicile Certificate'],
+        [/aadhaar|aadhar|uidai/i, 'Aadhaar Card'],
+        [/cast|jati/i, 'Cast Certificate'],
+        [/income|aay\b/i, 'Income Certificate'],
+        [/birth|janm/i, 'Birth Certificate'],
+        [/death|mrityu/i, 'Death Certificate'],
+        [/marriage|shadi|vivaah/i, 'Marriage Registration'],
+        [/voter|matdata/i, 'Voter ID'],
+        [/ration|food\s*security/i, 'Ration Card'],
+        [/scholarship|chhatravritti/i, 'Scholarship Documents'],
+        [/student|university|enroll/i, 'Student / University Registration']
+      ];
+      if (!document.type) {
+        var t = String(text || '').toLowerCase();
+        for (var ti = 0; ti < TYPE_MAP.length; ti++) {
+          if (TYPE_MAP[ti][0].test(t)) { document.type = TYPE_MAP[ti][1]; break; }
+        }
+      }
+      return { customer: customer, document: document, fields: fields, text: String(text || '') };
+    }
+    // ---- EXTRACTION END ----
+
+    /* ================= library loading (CDN) ================= */
+    function loadScript(src) {
+      return new Promise(function (resolve, reject) {
+        var s = document.createElement('script');
+        s.src = src;
+        s.onload = resolve;
+        s.onerror = function () { reject(new Error('Library load fail: ' + src)); };
+        document.head.appendChild(s);
+      });
+    }
+    var pdfjsLib = null;
+    function loadPdfJs() {
+      if (pdfjsLib) return Promise.resolve();
+      return loadScript('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js').then(function () {
+        pdfjsLib = window['pdfjs-dist/build/pdf'] || window.pdfjsLib;
+        if (!pdfjsLib) throw new Error('pdf.js load nahi hui');
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      });
+    }
+    function extractFromPdf(file) {
+      return loadPdfJs()
+        .then(function () { return file.arrayBuffer(); })
+        .then(function (buf) { return pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise; })
+        .then(function (doc) {
+          var jobs = [];
+          for (var p = 1; p <= doc.numPages; p++) {
+            jobs.push(doc.getPage(p).then(function (page) {
+              return page.getTextContent().then(function (c) {
+                var map = {};
+                c.items.forEach(function (it) {
+                  if (!it.str || !it.str.trim()) return;
+                  var y = Math.round(it.transform[5]);
+                  var x = it.transform[4];
+                  if (!map[y]) map[y] = [];
+                  map[y].push({ x: x, txt: it.str });
+                });
+                var lineTexts = [];
+                Object.keys(map).sort(function (a, b) { return Number(b) - Number(a); }).forEach(function (y) {
+                  map[y].sort(function (a, b) { return a.x - b.x; });
+                  lineTexts.push(map[y].map(function (o) { return o.txt; }).join(' '));
+                });
+                return lineTexts.join('\n');
+              });
+            }));
+          }
+          return Promise.all(jobs).then(function (parts) { return parts.join('\n'); });
+        });
+    }
+    var tessReady = null;
+    function loadTesseract() {
+      if (tessReady) return tessReady;
+      tessReady = loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js').then(function () {
+        if (!window.Tesseract) throw new Error('tesseract load nahi hui');
+      }).catch(function (e) { tessReady = null; throw e; });
+      return tessReady;
+    }
+    function makeTessWorker() {
+      // Hindi + English dono - Jan Seva Kendra ke documents (Niwas Praman,
+      // certificates) aksar Hindi me hote hain
+      return Tesseract.createWorker('eng+hin', 1, {
+        logger: function (m) {
+          if (m.status === 'recognizing text') msg('Photo se text nikal rahe hain... ' + Math.round(m.progress * 100) + '%', 'busy');
+        }
+      });
+    }
+    // phone photo ke liye: chhoti image upscale + grayscale + contrast stretch
+    function preprocessImage(file) {
+      return new Promise(function (resolve, reject) {
+        var url = URL.createObjectURL(file);
+        var img = new Image();
+        img.onload = function () {
+          try {
+            var scale = img.width < 1400 ? 2 : 1;
+            var canvas = document.createElement('canvas');
+            canvas.width = img.width * scale;
+            canvas.height = img.height * scale;
+            var ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            var data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            var d = data.data;
+            var min = 255, max = 0;
+            for (var i = 0; i < d.length; i += 4) {
+              var g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+              if (g < min) min = g;
+              if (g > max) max = g;
+            }
+            var range = (max - min) || 1;
+            for (var j = 0; j < d.length; j += 4) {
+              var g2 = 0.299 * d[j] + 0.587 * d[j + 1] + 0.114 * d[j + 2];
+              var v = Math.round((g2 - min) / range * 255);
+              d[j] = d[j + 1] = d[j + 2] = v;
+            }
+            ctx.putImageData(data, 0, 0);
+            URL.revokeObjectURL(url);
+            resolve(canvas);
+          } catch (e) { reject(e); }
+        };
+        img.onerror = function () { reject(new Error('Image load nahi hui')); };
+        img.src = url;
+      });
+    }
+    function ocrImage(file) {
+      return loadTesseract()
+        .then(function () { return preprocessImage(file); })
+        .then(function (canvas) {
+          return makeTessWorker().then(function (worker) {
+            return worker.recognize(canvas, { rotateAuto: true }).then(function (res) {
+              return worker.terminate().then(function () { return res.data.text; });
+            });
+          });
+        });
+    }
+    // scanned PDF (text layer nahi) -> har page ko canvas pe render -> OCR
+    function ocrPdfPages(file) {
+      return loadPdfJs()
+        .then(function () { return file.arrayBuffer(); })
+        .then(function (buf) { return pdfjsLib.getDocument({ data: new Uint8Array(buf) }).promise; })
+        .then(function (doc) {
+          var jobs = [];
+          for (var p = 1; p <= doc.numPages; p++) {
+            jobs.push(loadTesseract().then(function () {
+              return makeTessWorker().then(function (worker) {
+                return doc.getPage(p).then(function (page) {
+                  var viewport = page.getViewport({ scale: 2.2 });
+                  var canvas = document.createElement('canvas');
+                  canvas.width = viewport.width;
+                  canvas.height = viewport.height;
+                  return page.render({ canvasContext: canvas.getContext('2d'), viewport: viewport }).promise
+                    .then(function () { return worker.recognize(canvas, { rotateAuto: true }); })
+                    .then(function (res) { return worker.terminate().then(function () { return res.data.text; }); });
+                });
+              });
+            }));
+          }
+          return Promise.all(jobs).then(function (parts) { return parts.join('\n'); });
+        });
+    }
+
+    /* ================= file routing ================= */
+    function handleFile(file) {
+      if (!file) return;
+      currentFile = file.name || 'document';
+      var lower = currentFile.toLowerCase();
+      if (/\.(txt|csv)$/.test(lower)) {
+        msg('Text padh rahe hain...', 'busy');
+        var r = new FileReader();
+        r.onload = function () { fillFromText(r.result); };
+        r.onerror = function () { msg('File padhne me error', 'err'); };
+        r.readAsText(file);
+      } else if (/\.pdf$/.test(lower)) {
+        msg('PDF se data nikal rahe hain... (pehli baar library load hoti hai)', 'busy');
+        extractFromPdf(file).then(function (text) {
+          if (text && text.trim()) { fillFromText(text); return; }
+          msg('Is PDF me selectable text nahi mila - pages ko photo bana ke OCR kar rahe hain (Hindi bhi)...', 'busy');
+          return ocrPdfPages(file).then(function (ocrText) {
+            if (!ocrText.trim()) { msg('PDF se kuch nahi nikla - text paste karo ya photo upload karo.', 'err'); return; }
+            fillFromText(ocrText);
+          });
+        }).catch(function (e) { msg('PDF error: ' + e.message, 'err'); });
+      } else if (/\.(jpe?g|png)$/.test(lower)) {
+        msg('Photo se text nikal rahe hain... (pehli baar 30-40 sec lagte hain, Hindi + English dono padhta hai)', 'busy');
+        ocrImage(file).then(function (text) {
+          if (!text.trim()) { msg('Image se text nahi nikla - saaf photo lo (seedha, achhi light me) ya text paste karo.', 'err'); return; }
+          fillFromText(text);
+        }).catch(function (e) { msg('OCR error: ' + e.message + ' - text paste karke bhi bhar sakte ho.', 'err'); });
+      } else {
+        msg('Sirf PDF, JPG, PNG, TXT ya CSV file chale gi', 'err');
+      }
+    }
+
+    /* ================= fill form ================= */
+    function fillFromText(text) {
+      var res = extractFromText(text);
+      setVal('custName', res.customer.name);
+      setVal('custFather', res.customer.father);
+      setVal('custPhone', res.customer.phone);
+      setVal('custAadhaar', res.customer.aadhaar);
+      setVal('custDob', res.customer.dob);
+      setVal('custGender', res.customer.gender);
+      setVal('custAddress', res.customer.address);
+      if (res.document.type) $('docType').value = res.document.type;
+      setVal('docNo', res.document.docNo);
+      setVal('docIssue', res.document.issueDate);
+      setVal('docValid', res.document.validTill);
+      setVal('docIssuedBy', res.document.issuedBy);
+      $('rawText').textContent = res.text || '(kuch nahi mila)';
+      $('previewCard').hidden = false;
+      $('previewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (res.customer.name) {
+        msg('Data bhar diya - jo galat ho edit karo, phir Save. (' + currentFile + ')');
+      } else {
+        // fields khali -> raw text khud kholo taaki dikhe OCR ne kya nikala
+        var rawDetails = document.querySelector('.raw');
+        if (rawDetails) rawDetails.open = true;
+        msg('Data match nahi hua - neeche "Extracted raw text" me dekho OCR ne kya nikala, ya text paste karo. (' + currentFile + ')', 'err');
+      }
+    }
+    function setVal(id, v) { if (v) $(id).value = v; }
+    function clearForm() {
+      ['custName', 'custFather', 'custPhone', 'custAadhaar', 'custDob', 'custGender', 'custAddress', 'custRegNo', 'docNo', 'docIssue', 'docValid', 'docIssuedBy', 'docRemarks'].forEach(function (id) { $(id).value = ''; });
+      $('docType').value = '';
+      $('pasteText').value = '';
+      $('previewCard').hidden = true;
+      msg('');
+    }
+
+    /* ================= save ================= */
+    function save() {
+      var name = $('custName').value.trim();
+      if (!name) { msg('Client Name zaroori hai', 'err'); return; }
+      var type = $('docType').value;
+      if (!type) { msg('Document Type chuno', 'err'); return; }
+      var payload = {
+        customer: {
+          name: name,
+          father: $('custFather').value.trim(),
+          phone: $('custPhone').value.trim(),
+          aadhaar: $('custAadhaar').value.trim(),
+          dob: $('custDob').value.trim(),
+          gender: $('custGender').value.trim(),
+          address: $('custAddress').value.trim(),
+          regNo: $('custRegNo').value.trim()
+        },
+        document: {
+          type: type,
+          docNo: $('docNo').value.trim(),
+          issueDate: $('docIssue').value.trim(),
+          validTill: $('docValid').value.trim(),
+          issuedBy: $('docIssuedBy').value.trim(),
+          status: $('docStatus').value,
+          remarks: $('docRemarks').value.trim()
+        },
+        filename: currentFile
+      };
+      $('saveBtn').disabled = true;
+      google.script.run
+        .withSuccessHandler(function (res) {
+          $('saveBtn').disabled = false;
+          msg('Saved - "' + res.customer + '" ki profile me add ho gaya.');
+          clearForm();
+          loadDashCustomers();
+        })
+        .withFailureHandler(function (e) { $('saveBtn').disabled = false; msg('Error: ' + e.message, 'err'); })
+        .saveRecord(payload);
+    }
+
+    /* ================= dashboard ================= */
+    function loadDashCustomers() {
+      google.script.run
+        .withSuccessHandler(function (names) {
+          var sel = $('dashSelect');
+          var current = sel.value;
+          sel.innerHTML = '<option value="">- Client chuno -</option>' +
+            names.map(function (n) { return '<option value="' + n.replace(/"/g, '&quot;') + '">' + n + '</option>'; }).join('');
+          if (current) sel.value = current;
+        })
+        .withFailureHandler(function () {})
+        .getCustomers();
+    }
+    function showDocs(name) {
+      if (!name) { $('dashDocs').innerHTML = '<p class="empty">Client chuno - uske saare documents yahan dikhenge.</p>'; return; }
+      google.script.run
+        .withSuccessHandler(function (rows) {
+          if (!rows.length) { $('dashDocs').innerHTML = '<p class="empty">Is client ke paas abhi koi document nahi.</p>'; return; }
+          var html = '<table><tr><th>Type</th><th>Doc No</th><th>Issue</th><th>Valid Till</th><th>Status</th><th>File</th><th>Entry</th></tr>';
+          rows.forEach(function (r) {
+            html += '<tr><td>' + (r['Document Type'] || '') + '</td>' +
+              '<td>' + (r['Document No'] || '') + '</td>' +
+              '<td>' + (r['Issue Date'] || '') + '</td>' +
+              '<td>' + (r['Valid Till'] || '') + '</td>' +
+              '<td><span class="badge">' + (r['Status'] || '') + '</span></td>' +
+              '<td>' + (r['File Name'] || '') + '</td>' +
+              '<td>' + (r['Entry Date'] || '') + '</td></tr>';
+          });
+          html += '</table>';
+          $('dashDocs').innerHTML = html;
+        })
+        .withFailureHandler(function (e) { $('dashDocs').innerHTML = '<p class="empty">Error: ' + e.message + '</p>'; })
+        .getCustomerDocs(name);
+    }
+
+    /* ================= wiring ================= */
+    google.script.run
+      .withSuccessHandler(function (types) {
+        DOC_TYPES = types;
+        var sel = $('docType');
+        sel.innerHTML = '<option value="">- Select -</option>' +
+          types.map(function (t) { return '<option value="' + t.replace(/"/g, '&quot;') + '">' + t + '</option>'; }).join('');
+      })
+      .getDocTypes();
+
+    $('docStatus').innerHTML = STATUSES.map(function (s) {
+      return '<option value="' + s + '"' + (s === 'Submitted' ? ' selected' : '') + '>' + s + '</option>';
+    }).join('');
+
+    var dz = $('dropzone');
+    dz.addEventListener('click', function () { $('fileInput').click(); });
+    $('fileInput').addEventListener('change', function (e) {
+      handleFile(e.target.files[0]);
+      e.target.value = '';
+    });
+    ['dragenter', 'dragover'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.add('drag'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+      dz.addEventListener(ev, function (e) { e.preventDefault(); dz.classList.remove('drag'); });
+    });
+    dz.addEventListener('drop', function (e) {
+      var f = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (f) handleFile(f);
+    });
+
+    $('parseBtn').addEventListener('click', function () {
+      var text = $('pasteText').value;
+      if (!text.trim()) { msg('Pehle file upload karo ya text paste karo', 'err'); return; }
+      currentFile = 'pasted-text';
+      fillFromText(text);
+    });
+    $('clearBtn').addEventListener('click', clearForm);
+    $('saveBtn').addEventListener('click', save);
+
+    $('dashSelect').addEventListener('change', function (e) { showDocs(e.target.value); });
+    $('sheetBtn').addEventListener('click', function () {
+      google.script.run
+        .withSuccessHandler(function (url) { if (url) window.open(url, '_blank'); else msg('Sheet URL nahi mili', 'err'); })
+        .withFailureHandler(function (e) { msg('Error: ' + e.message, 'err'); })
+        .getSheetUrl();
+    });
+
+    loadDashCustomers();
+  </script>
+</body>
+</html>
