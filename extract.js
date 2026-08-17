@@ -32,7 +32,7 @@ async function extractPdfText(buffer) {
   const doc = await getDocument({
     data: new Uint8Array(buffer),
     StandardFontDataFactory: NodeStandardFontDataFactory,
-    standardFontDataUrl: standardFontsDir,
+    standardFontDataUrl: standardFontsDir + '/',
   }).promise;
   const out = [];
   for (let i = 1; i <= doc.numPages; i++) {

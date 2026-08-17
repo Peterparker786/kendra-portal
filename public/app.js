@@ -594,6 +594,69 @@ function renderServices() {
   }
 }
 
+// ---------------------------------------------------------------- document resizer
+
+let resizerResult = null;
+
+function fmtSize(b) {
+  if (b >= 1048576) return (b / 1048576).toFixed(1) + ' MB';
+  if (b >= 1024) return Math.round(b / 1024) + ' KB';
+  return b + ' B';
+}
+
+function wireResizer() {
+  const modal = $('#resizerModal');
+  $('#resizerBtn').addEventListener('click', () => {
+    modal.hidden = false;
+  });
+  $('#resizerClose').addEventListener('click', () => {
+    modal.hidden = true;
+  });
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.hidden = true;
+  });
+  $('#resizerPickBtn').addEventListener('click', () => $('#resizerInput').click());
+  $('#resizerInput').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (f) resizeDoc(f);
+  });
+  $('#resizerDownloadBtn').addEventListener('click', () => {
+    if (!resizerResult) return;
+    const a = document.createElement('a');
+    a.href = resizerResult.dataUrl;
+    a.download = resizerResult.downloadName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+}
+
+function resizeDoc(file) {
+  toast('Size kam kiya ja raha hai…');
+  $('#resizerResult').hidden = true;
+  const fd = new FormData();
+  fd.append('file', file);
+  fetch('/api/resize', { method: 'POST', body: fd })
+    .then(async (r) => {
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Resize failed');
+      return d;
+    })
+    .then((d) => {
+      resizerResult = d;
+      $('#resizerBefore').textContent = fmtSize(d.sizeBefore);
+      $('#resizerAfter').textContent = fmtSize(d.sizeAfter);
+      $('#resizerPct').textContent = d.pct > 0 ? `-${d.pct}%` : '—';
+      $('#resizerNote').hidden = !d.note;
+      $('#resizerNote').textContent = d.note || '';
+      $('#resizerResult').hidden = false;
+      $('#resizerResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      toast(d.pct > 0 ? 'Ho gaya! Download dabao' : 'Koi badlav nahi — file pehle se chhoti hai');
+    })
+    .catch((err) => toast(err.message, 'err'));
+}
+
 // ---------------------------------------------------------------- topbar sheet button
 
 function wireSheetBtn() {
@@ -616,6 +679,7 @@ wirePreview();
 wireDashboard();
 wireSheetBtn();
 wireServices();
+wireResizer();
 renderServices();
 loadDocTypes();
 loadServices();

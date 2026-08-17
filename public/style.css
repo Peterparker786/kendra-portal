@@ -567,3 +567,20 @@ body {
 }
 .modal-close:hover { background: #e0e7ff; }
 @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+/* ---------------- resizer stats ---------------- */
+.resizer-stats {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  background: #f8fafc;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 14px;
+}
+.resizer-stat { display: flex; flex-direction: column; }
+.resizer-stat span { font-size: 11.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.resizer-stat b { font-size: 17px; color: var(--ink); }
+.resizer-stat.pct b { color: var(--green); }
+.resizer-arrow { color: var(--muted); font-size: 18px; }

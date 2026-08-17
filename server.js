@@ -6,6 +6,7 @@ import multer from 'multer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument } from './extract.js';
+import { resizeDocument } from './resize.js';
 import * as store from './db.js';
 import { GOOGLE_SHEET_WEBHOOK_URL, GOOGLE_SHEET_URL } from './config.js';
 
@@ -39,6 +40,17 @@ app.post('/api/upload', upload.single('file'), async (req, res, next) => {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const preview = await analyzeDocument(req.file.buffer, req.file.originalname);
     res.json(preview);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---- document resizer: PDF/image ka size kam karo ----
+app.post('/api/resize', upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const out = await resizeDocument(req.file.buffer, req.file.originalname);
+    res.json(out);
   } catch (err) {
     next(err);
   }
