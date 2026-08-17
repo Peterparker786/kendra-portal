@@ -140,6 +140,39 @@ function renderPreview() {
   $('#customerNameInput').value = p.customerName || '';
   $('#rawText').textContent = p.text || '(no text extracted)';
 
+  // ---- existing customer dropdown: agar same customer dobara extract ho raha
+  // ho to select karo — saare documents usi profile me save honge ----
+  const cSel = $('#customerSelect');
+  cSel.innerHTML = '<option value="">— Naya customer banega (auto) —</option>';
+  for (const c of state.customers) {
+    cSel.innerHTML += `<option value="${c.id}">${esc(c.name)}${c.aadhaar ? ' · ' + esc(c.aadhaar) : ''}</option>`;
+  }
+  const aadhaarField = p.fields.find((f) => /aadhaar|aadhar/i.test(f.key));
+  const aadhaarDigits = (aadhaarField ? String(aadhaarField.value) : '').replace(/\D/g, '');
+  const nm = String(p.customerName || '').trim().toLowerCase();
+  const aadhaarMatch = aadhaarDigits
+    ? state.customers.find((c) => String(c.aadhaar || '').replace(/\D/g, '') === aadhaarDigits)
+    : null;
+  const nameMatches = nm ? state.customers.filter((c) => c.name.toLowerCase() === nm) : [];
+  const matched = aadhaarMatch || (nameMatches.length === 1 ? nameMatches[0] : null);
+  state.preview.selectedCustomerId = matched ? matched.id : null;
+  cSel.value = matched ? matched.id : '';
+  if (matched) {
+    $('#customerNameInput').value = matched.name;
+    toast(`Existing customer mila: "${matched.name}" — unki profile me save hoga`);
+  }
+  cSel.onchange = () => {
+    const id = Number(cSel.value) || null;
+    state.preview.selectedCustomerId = id;
+    if (id) {
+      const c = state.customers.find((x) => x.id === id);
+      if (c) {
+        $('#customerNameInput').value = c.name;
+        toast(`"${c.name}" ki profile me save hoga`);
+      }
+    }
+  };
+
   // doc type dropdown (standard + used types + Other)
   const dtSel = $('#docTypeSelect');
   let opts = '<option value="">- Select -</option>';
@@ -266,7 +299,9 @@ function buildPayload() {
   if (extra.length) {
     document.remarks = (document.remarks ? document.remarks + ' | ' : '') + extra.join(' | ');
   }
-  return { customer, document, filename: p.filename };
+  const payload = { customer, document, filename: p.filename };
+  if (state.preview.selectedCustomerId) payload.customerId = state.preview.selectedCustomerId;
+  return payload;
 }
 
 function savePreview() {

@@ -48,7 +48,16 @@ app.post('/api/upload', upload.single('file'), async (req, res, next) => {
 app.post('/api/records', (req, res, next) => {
   try {
     const body = req.body || {};
-    const customer = store.findOrCreateCustomer(body.customer || {});
+    // Agar user ne preview me existing customer chuna hai -> usi pe save karo
+    // (naam/aadhaar alag ho tab bhi — saare docs ek saath profile me)
+    let customer;
+    if (body.customerId) {
+      customer =
+        store.updateCustomerFields(Number(body.customerId), body.customer || {}) ||
+        store.findOrCreateCustomer(body.customer || {});
+    } else {
+      customer = store.findOrCreateCustomer(body.customer || {});
+    }
     const id = store.addDocument({
       customerId: customer.id,
       docType: (body.document || {}).type,

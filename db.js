@@ -115,6 +115,25 @@ export function findOrCreateCustomer({ name, phone, aadhaar, dob, gender, addres
   return db.prepare('SELECT * FROM customers WHERE id = ?').get(row.id);
 }
 
+/** Existing customer pe hi save karo — jo fields khali hain unhe naye data se bharo */
+export function updateCustomerFields(id, { phone, aadhaar, dob, gender, address, father, regNo }) {
+  const row = db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+  if (!row) return null;
+  db.prepare(
+    `UPDATE customers SET phone=?, aadhaar=?, dob=?, gender=?, address=?, father=?, reg_no=? WHERE id=?`
+  ).run(
+    row.phone || phone || '',
+    digits(row.aadhaar) || digits(aadhaar) || '',
+    row.dob || dob || '',
+    row.gender || gender || '',
+    row.address || address || '',
+    row.father || father || '',
+    row.reg_no || regNo || '',
+    id
+  );
+  return db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
+}
+
 export function addDocument({ customerId, docType, docNo, issueDate, validTill, issuedBy, status, remarks, filename }) {
   const info = db
     .prepare(

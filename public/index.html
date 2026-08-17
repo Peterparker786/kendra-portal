@@ -65,9 +65,18 @@
 
       <div class="grid2">
         <div>
+          <div class="field-label">Existing Customer <span class="hint-inline">(select karo agar pehle se hai)</span></div>
+          <select id="customerSelect" class="select wide">
+            <option value="">— Naya customer banega (auto) —</option>
+          </select>
+        </div>
+        <div>
           <div class="field-label">Customer Name <span class="req">*</span></div>
           <input type="text" id="customerNameInput" class="input wide" placeholder="e.g. Ramesh Kumar" />
         </div>
+      </div>
+
+      <div class="grid2" style="margin-top:10px">
         <div>
           <div class="field-label">Document Type <span class="req">*</span></div>
           <select id="docTypeSelect" class="select wide"></select>
@@ -75,17 +84,17 @@
             <input type="text" id="customTypeInput" class="input wide" placeholder="Naye type ka naam likho, e.g. Handicap Certificate" />
           </div>
         </div>
+        <div>
+          <div class="field-label">Status</div>
+          <select id="statusSelect" class="select wide"></select>
+        </div>
       </div>
 
       <div class="field-label">Extracted Fields <span class="hint-inline">(edit karke correct karo)</span></div>
       <div id="fieldsEditor" class="fields-editor"></div>
       <button class="btn ghost sm" id="addFieldBtn">+ Add field</button>
 
-      <div class="grid2" style="margin-top:10px">
-        <div>
-          <div class="field-label">Status</div>
-          <select id="statusSelect" class="select wide"></select>
-        </div>
+      <div class="grid2">
         <div>
           <div class="field-label">Remarks</div>
           <input type="text" id="remarksInput" class="input wide" placeholder="Koi note (optional)" />
