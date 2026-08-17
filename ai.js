@@ -17,6 +17,7 @@ import {
   NARA_ROUTER_BASE,
   NARA_ROUTER_MODEL,
 } from './config.js';
+import sharp from 'sharp';
 
 // Gemini ke liye models try karne ka order: env me GEMINI_MODEL diya ho to wahi,
 // warna gemini-2.5-flash pehle aur gemini-2.0-flash fallback.
@@ -52,6 +53,38 @@ const PROMPT = [
   'Output nothing except the JSON object.',
 ].join('\n');
 
+/**
+ * AI ko bhejne se pehle image ko chhota/clean karo:
+ * - 1568px se bade ko downscale (Gemini ka sweet spot) -> fast + kam tokens
+ * - EXIF orientation fix (ulti phone photo seedhi)
+ * PDF ko as-is bhejo (text/page structure chahiye).
+ */
+async function shrinkForAI(buffer, filename) {
+  const mime = mimeFor(filename);
+  if (mime === 'application/pdf') {
+    return { mime, data: buffer.toString('base64') };
+  }
+  try {
+    const meta = await sharp(buffer).metadata();
+    const w = meta.width || 0;
+    const h = meta.height || 0;
+    const maxDim = Math.max(w, h);
+    if (maxDim > 1568) {
+      const scale = 1568 / maxDim;
+      const small = await sharp(buffer)
+        .rotate()
+        .resize(Math.round(w * scale), Math.round(h * scale))
+        .jpeg({ quality: 88 })
+        .toBuffer();
+      return { mime: 'image/jpeg', data: small.toString('base64') };
+    }
+    const clean = await sharp(buffer).rotate().jpeg({ quality: 90 }).toBuffer();
+    return { mime: 'image/jpeg', data: clean.toString('base64') };
+  } catch {
+    return { mime, data: buffer.toString('base64') };
+  }
+}
+
 /** Kya koi AI provider configured hai? (images ko seedha AI pe bhejna hai ya nahi) */
 export function aiEnabled() {
   return Boolean(GEMINI_API_KEY || NARA_ROUTER_KEY);
@@ -74,11 +107,12 @@ export async function aiExtract(buffer, filename) {
 
 // ---- provider 1: Google Gemini ----
 async function aiViaGemini(buffer, filename) {
+  const img = await shrinkForAI(buffer, filename);
   const body = {
     contents: [
       {
         parts: [
-          { inlineData: { mimeType: mimeFor(filename), data: buffer.toString('base64') } },
+          { inlineData: { mimeType: img.mime, data: img.data } },
           { text: PROMPT },
         ],
       },
@@ -123,9 +157,9 @@ async function aiViaGemini(buffer, filename) {
 
 // ---- provider 2: NaraRouter (OpenAI-compatible /chat/completions) ----
 async function aiViaOpenAi(buffer, filename) {
-  const mime = mimeFor(filename);
+  const img = await shrinkForAI(buffer, filename);
   // OpenAI-compatible vision images leta hai, PDF nahi (wahan Gemini try karo)
-  if (mime === 'application/pdf') return null;
+  if (img.mime === 'application/pdf') return null;
 
   const body = {
     model: NARA_ROUTER_MODEL,
@@ -136,7 +170,7 @@ async function aiViaOpenAi(buffer, filename) {
           { type: 'text', text: PROMPT },
           {
             type: 'image_url',
-            image_url: { url: `data:${mime};base64,${buffer.toString('base64')}` },
+            image_url: { url: `data:${img.mime};base64,${img.data}` },
           },
         ],
       },
