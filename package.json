@@ -4,7 +4,11 @@
   "description": "Document upload portal — extract data, preview & correct, save to customer profiles, export to Excel",
   "type": "module",
   "main": "server.js",
+  "engines": {
+    "node": ">=22.5.0"
+  },
   "scripts": {
+    "build": "node scripts/fetch-tessdata.mjs",
     "start": "node server.js",
     "make-sample": "node scripts/make-sample-pdf.js && node scripts/make-sample-image.js"
   },
@@ -12,9 +16,8 @@
     "express": "^4.21.2",
     "multer": "^2.0.1",
     "pdfjs-dist": "^4.10.38",
+    "sharp": "^0.35.3",
     "tesseract.js": "^7.0.0"
   },
-  "devDependencies": {
-    "sharp": "^0.35.3"
-  }
+  "devDependencies": {}
 }

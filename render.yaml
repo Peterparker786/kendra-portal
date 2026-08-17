@@ -1,0 +1,27 @@
+# render.yaml — Render pe deploy karne ke liye (free tier)
+# ------------------------------------------------------------------
+# Steps: render.com pe signup -> New + -> Blueprint -> yeh repo chuno
+# -> Render is file ko padh kar service bana degi. Deploy ke waqt
+# NARA_ROUTER_KEY (aur GSCRIPT_URL agar ho) maangegi — wahan apni key
+# daalna.
+#
+# NOTE (zaroori): Render free tier me disk ephemeral hai — matlab data/
+# (portal.db) har restart/deploy pe reset ho jata hai. Real data ke liye
+# Google Sheet sync (GSCRIPT_URL) ya paid disk chahiye. Detail README me.
+services:
+  - type: web
+    name: kendra-portal
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NARA_ROUTER_KEY
+        sync: false
+      - key: GSCRIPT_URL
+        sync: false

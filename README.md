@@ -47,6 +47,31 @@ Browser me kholo: **http://localhost:4567**
 | `public/` | Dashboard UI (koi build step nahi) |
 | `scripts/make-sample-pdf.js` | Sample PDF documents banata hai |
 | `scripts/make-sample-image.js` | Sample Aadhaar image (JPEG+PNG) banata hai |
+| `scripts/fetch-tessdata.mjs` | Build time OCR data download (nayi machine/Render ke liye) |
+| `render.yaml` | Render pe free deploy karne ka blueprint |
+
+## GitHub + Render pe deploy (permanent link ke liye)
+
+Repo: **https://github.com/Peterparker786/kendra-portal**
+
+**Render pe free deploy (24x7 link):**
+
+1. **render.com** pe signup karo — "Sign up with GitHub" se (repo connect ho jayegi)
+2. Dashboard me **New + → Blueprint** → `Peterparker786/kendra-portal` repo chuno
+3. Render `render.yaml` ko padh kar service bana degi. Deploy ke waqt **NARA_ROUTER_KEY**
+   maangegi — wahan apni key daalo (`sk-nry-...` wali, router.bynara.id se)
+4. Deploy hone ke baad jo URL mile (`https://kendra-portal.onrender.com`) wahi aapka
+   **permanent link** hai — kisi ko bhi bhejo
+
+**Zaroori baatein (free tier):**
+
+- **Data reset hota hai!** Render free tier me disk ephemeral hai — `data/portal.db` har
+  restart/deploy pe saaf ho jata hai. **Real data ke liye** (a) Google Sheet sync on karo
+  (`GSCRIPT_URL` env me web app URL daalo — SheetSync.gs deploy karke) taaki copy sheet me
+  bhi save ho, ya (b) paid disk (Render ~$7/mo). Demo/test ke liye bina kisi ke bhi chalta hai.
+- Free tier **15 min idle ke baad so jata hai** — pehli request pe 30-60 sec lagte hain
+  (wake up), phir fast.
+- Agar `NARA_ROUTER_KEY` nahi daloge to AI fallback band rahega (Tesseract OCR chalta rahega).
 | `sample/` | Sample documents (PDF + images) |
 | `tessdata/` | OCR language files (eng + hin) — pehli baar me hi aate hain |
 
