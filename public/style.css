@@ -584,3 +584,61 @@ body {
 .resizer-stat b { font-size: 17px; color: var(--ink); }
 .resizer-stat.pct b { color: var(--green); }
 .resizer-arrow { color: var(--muted); font-size: 18px; }
+
+/* ---------------- passport photo maker ---------------- */
+.passport-opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 14px;
+  align-items: flex-end;
+}
+.opt-group {
+  flex: 1 1 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.opt-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted, #999);
+}
+.opt-row {
+  display: flex;
+  gap: 8px;
+}
+.radio-card {
+  flex: 1;
+  cursor: pointer;
+}
+.radio-card input {
+  display: none;
+}
+.radio-card span {
+  display: block;
+  padding: 10px 12px;
+  border: 1.5px solid #333;
+  border-radius: 10px;
+  font-size: 14px;
+  text-align: center;
+  transition: border-color .15s, background .15s;
+}
+.radio-card span small {
+  color: var(--muted, #999);
+  font-weight: 400;
+}
+.radio-card input:checked + span {
+  border-color: var(--accent, #4f8cff);
+  background: rgba(79, 140, 255, .12);
+}
+.num-input {
+  width: 110px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1.5px solid #333;
+  background: var(--input-bg, #141414);
+  color: var(--text, #eee);
+  font-size: 16px;
+  font-weight: 700;
+}

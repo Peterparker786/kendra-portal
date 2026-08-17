@@ -23,6 +23,7 @@
         <button class="btn sheet-btn" id="sheetBtn" hidden title="Google Sheet / Excel">📊 Open Excel (Google Sheet)</button>
         <button class="btn sheet-btn" id="servicesBtn" title="Services">🛠 Services</button>
         <button class="btn sheet-btn" id="resizerBtn" title="Document Resizer">✂️ Document Resizer</button>
+        <button class="btn sheet-btn" id="passportBtn" title="Passport Photo Maker">🪪 Passport Photo</button>
       </div>
     </div>
   </header>
@@ -176,6 +177,56 @@
         </div>
         <p class="hint" id="resizerNote" hidden></p>
         <button class="btn primary big" id="resizerDownloadBtn">⬇ Download</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal" id="passportModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>🪪 Passport Photo Maker</h2>
+        <button class="modal-close" id="passportClose" title="Band karo">✕</button>
+      </div>
+      <p class="hint">Photo upload karo, passport size chuno, kitni photos chahiye likho — A4 sheet pe set ho kar mil jayegi (print ready PDF).</p>
+      <div class="upload-zone" id="passportZone">
+        <input type="file" id="passportInput" accept=".jpg,.jpeg,.png" hidden />
+        <div class="upload-inner" id="passportInner">
+          <div class="upload-icon">📷</div>
+          <p class="upload-title">Photo upload karo (JPG / PNG)</p>
+          <div class="upload-formats">
+            <span class="fmt-chip">JPG</span>
+            <span class="fmt-chip">PNG</span>
+          </div>
+          <button class="btn primary" id="passportPickBtn">Choose photo</button>
+        </div>
+      </div>
+      <div class="passport-opts">
+        <div class="opt-group">
+          <label>Photo size</label>
+          <div class="opt-row">
+            <label class="radio-card"><input type="radio" name="psize" value="2x2" checked /><span>2×2 inch<br /><small>Passport (51×51 mm)</small></span></label>
+            <label class="radio-card"><input type="radio" name="psize" value="35x45" /><span>35×45 mm<br /><small>Govt forms</small></span></label>
+          </div>
+        </div>
+        <div class="opt-group">
+          <label for="passportCount">Kitni photos chahiye?</label>
+          <input type="number" id="passportCount" min="1" max="100" value="8" class="num-input" />
+        </div>
+      </div>
+      <div style="margin-top:12px">
+        <button class="btn primary big" id="passportMakeBtn" disabled>🖨 Sheet banao</button>
+      </div>
+      <div id="passportResult" hidden style="margin-top:14px">
+        <div class="resizer-stats">
+          <div class="resizer-stat"><span>Sheet pe</span><b id="passportPerSheet"></b></div>
+          <div class="resizer-arrow">×</div>
+          <div class="resizer-stat"><span>Pages (A4)</span><b id="passportPages"></b></div>
+          <div class="resizer-stat pct"><span>Size</span><b id="passportSizeLabel"></b></div>
+        </div>
+        <div id="passportPreviewWrap" style="margin:12px 0;text-align:center">
+          <img id="passportPreview" alt="A4 sheet preview" style="max-width:100%;max-height:340px;border:1px solid #333;border-radius:8px" />
+        </div>
+        <button class="btn primary big" id="passportDownloadBtn">⬇ Download A4 PDF</button>
       </div>
     </div>
   </div>

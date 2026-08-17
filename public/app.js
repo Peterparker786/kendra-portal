@@ -657,6 +657,89 @@ function resizeDoc(file) {
     .catch((err) => toast(err.message, 'err'));
 }
 
+// ---------------------------------------------------------------- passport photo maker
+
+let passportFile = null;
+let passportPdfUrl = null;
+
+function wirePassport() {
+  const modal = $('#passportModal');
+  const makeBtn = $('#passportMakeBtn');
+  $('#passportBtn').addEventListener('click', () => {
+    modal.hidden = false;
+  });
+  $('#passportClose').addEventListener('click', () => {
+    modal.hidden = true;
+  });
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) modal.hidden = true;
+  });
+  $('#passportPickBtn').addEventListener('click', () => $('#passportInput').click());
+  $('#passportInput').addEventListener('change', (e) => {
+    const f = e.target.files && e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    passportFile = f;
+    $('#passportInner').innerHTML =
+      `<div class="upload-icon">📷</div><p class="upload-title">${escapeHtml(f.name)}</p>` +
+      `<p class="upload-sub">${fmtSize(f.size)} — size/count chuno aur Sheet banao dabao</p>`;
+    makeBtn.disabled = false;
+    $('#passportResult').hidden = true;
+  });
+  makeBtn.addEventListener('click', () => {
+    if (!passportFile) return;
+    const size = (document.querySelector('input[name="psize"]:checked') || {}).value || '2x2';
+    const count = parseInt($('#passportCount').value, 10) || 8;
+    makeBtn.disabled = true;
+    toast('A4 sheet bana rahe hain…');
+    const fd = new FormData();
+    fd.append('file', passportFile);
+    fd.append('size', size);
+    fd.append('count', String(count));
+    fetch('/api/passport', { method: 'POST', body: fd })
+      .then(async (r) => {
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Failed');
+        return d;
+      })
+      .then((d) => {
+        passportPdfUrl = d.dataUrl;
+        $('#passportPerSheet').textContent = d.perSheet;
+        $('#passportPages').textContent = d.pages;
+        $('#passportSizeLabel').textContent = d.sizeLabel;
+        const img = $('#passportPreview');
+        if (d.preview) {
+          img.src = d.preview;
+          $('#passportPreviewWrap').hidden = false;
+        } else {
+          $('#passportPreviewWrap').hidden = true;
+        }
+        $('#passportResult').hidden = false;
+        $('#passportResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        toast(`Ho gaya! ${d.count} photos, ${d.pages} A4 page` + (d.pages > 1 ? 's' : ''));
+      })
+      .catch((err) => toast(err.message, 'err'))
+      .finally(() => {
+        makeBtn.disabled = false;
+      });
+  });
+  $('#passportDownloadBtn').addEventListener('click', () => {
+    if (!passportPdfUrl) return;
+    const a = document.createElement('a');
+    a.href = passportPdfUrl;
+    a.download = 'passport-photos-a4.pdf';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  });
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 // ---------------------------------------------------------------- topbar sheet button
 
 function wireSheetBtn() {
@@ -680,6 +763,7 @@ wireDashboard();
 wireSheetBtn();
 wireServices();
 wireResizer();
+wirePassport();
 renderServices();
 loadDocTypes();
 loadServices();

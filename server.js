@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument } from './extract.js';
 import { resizeDocument } from './resize.js';
+import { makePassportSheet } from './passport.js';
 import * as store from './db.js';
 import { GOOGLE_SHEET_WEBHOOK_URL, GOOGLE_SHEET_URL } from './config.js';
 
@@ -50,6 +51,20 @@ app.post('/api/resize', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
     const out = await resizeDocument(req.file.buffer, req.file.originalname);
+    res.json(out);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// ---- passport-size photo sheet (A4) ----
+app.post('/api/passport', upload.single('file'), async (req, res, next) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    const out = await makePassportSheet(req.file.buffer, {
+      size: req.body.size || '2x2',
+      count: req.body.count || 8,
+    });
     res.json(out);
   } catch (err) {
     next(err);
