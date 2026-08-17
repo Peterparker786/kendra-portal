@@ -173,4 +173,72 @@ app.use((err, _req, res, _next) => {
 
 app.listen(PORT, () => {
   console.log(`Kendra Portal running → http://localhost:${PORT}`);
+  importFromGoogleSheet();
 });
+
+// ---------------------------------------------------------------------------
+// Google Sheet se restore — Render free tier pe disk har restart/deploy pe reset
+// hoti hai, isliye portal har start pe sheet se data wapas load karta hai (agar
+// local DB khali ho). Sheet hi ab permanent store hai.
+// ---------------------------------------------------------------------------
+async function importFromGoogleSheet() {
+  if (!GOOGLE_SHEET_WEBHOOK_URL) {
+    console.log('sheet restore: GSCRIPT_URL nahi hai, skip');
+    return;
+  }
+  try {
+    const res = await fetch(GOOGLE_SHEET_WEBHOOK_URL, { method: 'GET' });
+    if (!res.ok) {
+      console.error('sheet restore: HTTP', res.status);
+      return;
+    }
+    const data = await res.json().catch(() => null);
+    if (!data || !data.ok || !Array.isArray(data.customers)) {
+      console.log('sheet restore: koi data nahi mila (SheetSync.gs ka doGet naya version hai?)');
+      return;
+    }
+    if (store.listCustomers().length > 0) {
+      console.log('sheet restore: local DB me pehle se data hai, skip');
+      return;
+    }
+    let n = 0;
+    for (const c of data.customers) {
+      try {
+        store.findOrCreateCustomer({
+          name: c.name,
+          phone: c.phone,
+          aadhaar: c.aadhaar,
+          dob: c.dob,
+          gender: c.gender,
+          address: c.address,
+          father: c.father,
+          regNo: c.regNo,
+        });
+        n++;
+      } catch {
+        // ek row kharab ho to aage badho
+      }
+    }
+    for (const d of data.documents || []) {
+      try {
+        const cust = store.findOrCreateCustomer({ name: d.customer });
+        store.addDocument({
+          customerId: cust.id,
+          docType: d.type,
+          docNo: d.docNo,
+          issueDate: d.issueDate,
+          validTill: d.validTill,
+          issuedBy: d.issuedBy,
+          status: d.status,
+          remarks: d.remarks,
+          filename: d.filename || 'restored',
+        });
+      } catch {
+        // ek row kharab ho to aage badho
+      }
+    }
+    console.log(`sheet restore: ${n} customers + ${(data.documents || []).length} documents import ho gaye`);
+  } catch (err) {
+    console.error('sheet restore failed:', err.message);
+  }
+}

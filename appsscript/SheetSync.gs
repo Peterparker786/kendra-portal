@@ -17,10 +17,43 @@
  *   6. Woh URL mujhe bhejo, main config.js me daal dunga
  ***************************************************************/
 
-// Browser me URL kholne pe yeh chhota page dikhta hai (authorization ke liye).
+// doGet: browser me khule to chhota page, aur portal server isse saara data
+// read karta hai (start pe restore ke liye). Response JSON me aata hai.
 function doGet() {
-  return ContentService.createTextOutput('Kendra Portal sheet sync ready. Data POST se aata hai.')
-    .setMimeType(ContentService.MimeType.TEXT);
+  try {
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var cust = ss.getSheetByName('Customers');
+    var docs = ss.getSheetByName('Documents');
+    var out = { ok: true, customers: [], documents: [] };
+
+    if (cust && cust.getLastRow() > 1) {
+      var cv = cust.getRange(2, 1, cust.getLastRow() - 1, 10).getValues();
+      for (var i = 0; i < cv.length; i++) {
+        var r = cv[i];
+        if (!String(r[1]).trim()) continue; // empty row skip
+        out.customers.push({
+          name: r[1], phone: r[2], aadhaar: r[3], dob: r[4], gender: r[5],
+          address: r[6], father: r[7], regNo: r[8]
+        });
+      }
+    }
+    if (docs && docs.getLastRow() > 1) {
+      var dv = docs.getRange(2, 1, docs.getLastRow() - 1, 10).getValues();
+      for (var j = 0; j < dv.length; j++) {
+        var d = dv[j];
+        if (!String(d[0]).trim()) continue; // empty row skip
+        out.documents.push({
+          customer: d[0], type: d[1], docNo: d[2], issueDate: d[3], validTill: d[4],
+          issuedBy: d[5], status: d[6], remarks: d[7], filename: d[8]
+        });
+      }
+    }
+    return ContentService.createTextOutput(JSON.stringify(out))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (err) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
 
 function doPost(e) {
