@@ -29,8 +29,13 @@ function doGet() {
     if (!svc) {
       svc = ss.insertSheet('Services');
       svc.appendRow(['Service Name', 'URL']);
+      seedServices(svc);
     } else if (svc.getLastRow() === 0) {
       svc.appendRow(['Service Name', 'URL']);
+      seedServices(svc);
+    } else if (svc.getLastRow() === 1) {
+      // sirf header hai -> saari services seed karo (links ke saath)
+      seedServices(svc);
     }
     var out = { ok: true, customers: [], documents: [], services: [] };
 
@@ -123,6 +128,28 @@ function doPost(e) {
     return ContentService.createTextOutput(JSON.stringify({ ok: false, error: String(err) }))
       .setMimeType(ContentService.MimeType.JSON);
   }
+}
+
+// Services tab khali ho to saari services + current links bhar do.
+// (User yahan links edit kar sakta hai — portal ~2 min me utha leta hai.)
+function seedServices(sheet) {
+  var rows = [
+    ['Aadhaar Card', 'https://myaadhaar.uidai.gov.in/'],
+    ['Aadhaar Correction', 'https://myaadhaar.uidai.gov.in/'],
+    ['Niwas Praman (Residence)', 'https://edistrict.up.gov.in/'],
+    ['Domicile Certificate', 'https://edistrict.up.gov.in/'],
+    ['Cast Certificate', 'https://edistrict.up.gov.in/'],
+    ['Income Certificate', 'https://edistrict.up.gov.in/'],
+    ['Birth Certificate', 'https://www.crsorgi.gov.in/'],
+    ['Death Certificate', 'https://www.crsorgi.gov.in/'],
+    ['Marriage Registration', 'https://marriage.up.gov.in/'],
+    ['Voter ID', 'https://voters.eci.gov.in/'],
+    ['Ration Card', 'https://fcs.up.gov.in/'],
+    ['Student / University Registration', 'https://edistrict.up.gov.in/'],
+    ['Scholarship Documents', 'https://scholarships.gov.in/'],
+    ['Other', 'https://edistrict.up.gov.in/'],
+  ];
+  if (rows.length) sheet.getRange(2, 1, rows.length, 2).setValues(rows);
 }
 
 // Sheet mili to wahi, nahi mili to columns ke saath nayi banao
