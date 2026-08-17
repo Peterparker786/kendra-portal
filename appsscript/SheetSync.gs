@@ -17,14 +17,22 @@
  *   6. Woh URL mujhe bhejo, main config.js me daal dunga
  ***************************************************************/
 
-// doGet: browser me khule to chhota page, aur portal server isse saara data
-// read karta hai (start pe restore ke liye). Response JSON me aata hai.
+// doGet: portal isse saara data read karta hai (restore + services links).
+// Services tab (col A = Service Name, col B = URL) — portal ke service cards
+// ke links yahan se aate hain. Sheet me badlo, portal me dikhega.
 function doGet() {
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var cust = ss.getSheetByName('Customers');
     var docs = ss.getSheetByName('Documents');
-    var out = { ok: true, customers: [], documents: [] };
+    var svc = ss.getSheetByName('Services');
+    if (!svc) {
+      svc = ss.insertSheet('Services');
+      svc.appendRow(['Service Name', 'URL']);
+    } else if (svc.getLastRow() === 0) {
+      svc.appendRow(['Service Name', 'URL']);
+    }
+    var out = { ok: true, customers: [], documents: [], services: [] };
 
     if (cust && cust.getLastRow() > 1) {
       var cv = cust.getRange(2, 1, cust.getLastRow() - 1, 10).getValues();
@@ -45,6 +53,16 @@ function doGet() {
         out.documents.push({
           customer: d[0], type: d[1], docNo: d[2], issueDate: d[3], validTill: d[4],
           issuedBy: d[5], status: d[6], remarks: d[7], filename: d[8]
+        });
+      }
+    }
+    if (svc.getLastRow() > 1) {
+      var sv = svc.getRange(2, 1, svc.getLastRow() - 1, 2).getValues();
+      for (var k = 0; k < sv.length; k++) {
+        if (!String(sv[k][0]).trim()) continue; // empty row skip
+        out.services.push({
+          name: String(sv[k][0]).trim(),
+          url: String(sv[k][1] || '').trim()
         });
       }
     }

@@ -113,6 +113,29 @@ app.get('/api/doc-types', (_req, res, next) => {
   }
 });
 
+// ---- services: Google Sheet ke "Services" tab se links (TTL 2 min cache) ----
+// Sheet me link badlo -> ~2 min me portal me naya link dikh jayega.
+let servicesCache = { ts: 0, data: [] };
+const SERVICES_TTL_MS = 2 * 60 * 1000;
+
+app.get('/api/services', async (_req, res) => {
+  try {
+    const now = Date.now();
+    if (now - servicesCache.ts > SERVICES_TTL_MS && GOOGLE_SHEET_WEBHOOK_URL) {
+      const r = await fetch(GOOGLE_SHEET_WEBHOOK_URL, { method: 'GET' });
+      if (r.ok) {
+        const data = await r.json().catch(() => null);
+        if (data && Array.isArray(data.services)) {
+          servicesCache = { ts: now, data: data.services };
+        }
+      }
+    }
+    res.json({ services: servicesCache.data });
+  } catch (err) {
+    res.json({ services: servicesCache.data });
+  }
+});
+
 app.delete('/api/documents/:id', (req, res, next) => {
   try {
     const ok = store.deleteDocument(Number(req.params.id));

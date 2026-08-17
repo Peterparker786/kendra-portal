@@ -487,10 +487,44 @@ function loadDocTypes() {
 
 // ---------------------------------------------------------------- services
 
+// Google Sheet ke "Services" tab se links (name + url). Sheet me link badlo ->
+// ~2 min me portal me naya link dikh jayega. Sheet wala URL jeetta hai; nayi
+// service row add karo to naya card bhi aa jayega.
+let sheetServices = [];
+
+async function loadServices() {
+  try {
+    const r = await fetch('/api/services');
+    const d = await r.json();
+    sheetServices = Array.isArray(d.services) ? d.services : [];
+  } catch {
+    sheetServices = [];
+  }
+  renderServices();
+}
+
+function mergedServices() {
+  const map = new Map(SERVICES.map((s) => [String(s.type).toLowerCase(), s]));
+  for (const row of sheetServices) {
+    const name = String(row.name || '').trim();
+    if (!name) continue;
+    const url = String(row.url || '').trim();
+    const key = name.toLowerCase();
+    const base = map.get(key);
+    if (base) {
+      if (url) base.url = url; // sheet ka URL jeetta hai
+    } else {
+      SERVICES.push({ type: name, icon: '📄', desc: '', url }); // nayi service
+      map.set(key, SERVICES[SERVICES.length - 1]);
+    }
+  }
+  return SERVICES;
+}
+
 function renderServices() {
   const grid = $('#servicesGrid');
   grid.innerHTML = '';
-  for (const s of SERVICES) {
+  for (const s of mergedServices()) {
     const card = document.createElement('button');
     card.type = 'button';
     card.className = 'service-card';
@@ -500,6 +534,10 @@ function renderServices() {
       <span class="service-desc">${esc(s.desc)}</span>
     `;
     card.addEventListener('click', () => {
+      if (!s.url) {
+        toast(`"${s.type}" ka link abhi nahi hai — Google Sheet ke Services tab me add karo`, 'err');
+        return;
+      }
       window.open(s.url, '_blank', 'noopener');
       toast(`"${s.type}" ki official website khul rahi hai…`);
     });
@@ -514,4 +552,5 @@ wirePreview();
 wireDashboard();
 renderServices();
 loadDocTypes();
+loadServices();
 loadCustomers();
