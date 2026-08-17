@@ -491,3 +491,11 @@ body {
   from { opacity: 0; transform: translateY(6px); }
   to { opacity: 1; transform: translateY(0); }
 }
+
+/* ---------------- service external badge (↗) ---------------- */
+.ext-badge {
+  font-size: 10px;
+  color: var(--accent);
+  vertical-align: super;
+  margin-left: 2px;
+}

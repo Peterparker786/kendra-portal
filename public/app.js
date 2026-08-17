@@ -36,22 +36,23 @@ function docIcon(type) {
   return '📄';
 }
 
-// ---- Jan Seva Kendra services (home pe grid me dikhti hain) ----
+// ---- Jan Seva Kendra services: card pe click -> official website khulti hai
+// (jahan ye documents BANTE hain). URLs state ke hisaab se badal sakte ho.
 const SERVICES = [
-  { type: 'Aadhaar Card', icon: '🪪', desc: 'Aadhaar naya / update / correction' },
-  { type: 'Aadhaar Correction', icon: '✏️', desc: 'Aadhaar me sudhar — naam, DOB, address' },
-  { type: 'Niwas Praman (Residence)', icon: '🏠', desc: 'Niwas praman patra' },
-  { type: 'Domicile Certificate', icon: '🏡', desc: 'Domicile certificate' },
-  { type: 'Cast Certificate', icon: '🧬', desc: 'Jati praman patra' },
-  { type: 'Income Certificate', icon: '💰', desc: 'Aay praman patra' },
-  { type: 'Birth Certificate', icon: '👶', desc: 'Janm praman patra' },
-  { type: 'Death Certificate', icon: '🕊️', desc: 'Mrityu praman patra' },
-  { type: 'Marriage Registration', icon: '💍', desc: 'Vivah panjikaran' },
-  { type: 'Voter ID', icon: '🗳️', desc: 'Matdata pahchan patra' },
-  { type: 'Ration Card', icon: '🛒', desc: 'Ration card naya / update' },
-  { type: 'Student / University Registration', icon: '🎓', desc: 'Chhatra / university registration' },
-  { type: 'Scholarship Documents', icon: '📚', desc: 'Chhatravritti documents' },
-  { type: 'Other', icon: '📄', desc: 'Koi aur document / service' },
+  { type: 'Aadhaar Card', icon: '🪪', desc: 'Aadhaar naya / update / correction', url: 'https://myaadhaar.uidai.gov.in/' },
+  { type: 'Aadhaar Correction', icon: '✏️', desc: 'Aadhaar me sudhar — naam, DOB, address', url: 'https://myaadhaar.uidai.gov.in/' },
+  { type: 'Niwas Praman (Residence)', icon: '🏠', desc: 'Niwas praman patra', url: 'https://edistrict.up.gov.in/' },
+  { type: 'Domicile Certificate', icon: '🏡', desc: 'Domicile certificate', url: 'https://edistrict.up.gov.in/' },
+  { type: 'Cast Certificate', icon: '🧬', desc: 'Jati praman patra', url: 'https://edistrict.up.gov.in/' },
+  { type: 'Income Certificate', icon: '💰', desc: 'Aay praman patra', url: 'https://edistrict.up.gov.in/' },
+  { type: 'Birth Certificate', icon: '👶', desc: 'Janm praman patra', url: 'https://www.crsorgi.gov.in/' },
+  { type: 'Death Certificate', icon: '🕊️', desc: 'Mrityu praman patra', url: 'https://www.crsorgi.gov.in/' },
+  { type: 'Marriage Registration', icon: '💍', desc: 'Vivah panjikaran', url: 'https://marriage.up.gov.in/' },
+  { type: 'Voter ID', icon: '🗳️', desc: 'Matdata pahchan patra', url: 'https://voters.eci.gov.in/' },
+  { type: 'Ration Card', icon: '🛒', desc: 'Ration card naya / update', url: 'https://fcs.up.gov.in/' },
+  { type: 'Student / University Registration', icon: '🎓', desc: 'Chhatra / university registration', url: 'https://edistrict.up.gov.in/' },
+  { type: 'Scholarship Documents', icon: '📚', desc: 'Chhatravritti documents', url: 'https://scholarships.gov.in/' },
+  { type: 'Other', icon: '📄', desc: 'Koi aur document / service', url: 'https://edistrict.up.gov.in/' },
 ];
 
 function initials(name) {
@@ -146,14 +147,7 @@ function renderPreview() {
   }
   opts += '<option value="__other__">Other (naya type likho)</option>';
   dtSel.innerHTML = opts;
-  const svc = state.selectedService;
-  if (svc && state.docTypes.includes(svc)) {
-    dtSel.value = svc; // user ne service chuni thi — wahi rahegi
-  } else if (svc) {
-    dtSel.value = '__other__';
-    $('#customTypeInput').value = svc;
-    $('#customTypeBox').hidden = false;
-  } else if (p.docType && state.docTypes.includes(p.docType)) {
+  if (p.docType && state.docTypes.includes(p.docType)) {
     dtSel.value = p.docType;
   } else if (p.docType) {
     // extracted type standard list me nahi — Other + custom box me daalo
@@ -301,7 +295,6 @@ function savePreview() {
     .then((data) => {
       state.preview = null;
       $('#previewCard').hidden = true;
-      setActiveService(null);
       toast(`Saved — "${data.customerName}" ki profile me add ho gaya`);
       return loadCustomers().then(() => selectCustomer(data.customerId));
     })
@@ -494,18 +487,6 @@ function loadDocTypes() {
 
 // ---------------------------------------------------------------- services
 
-function setActiveService(type) {
-  state.selectedService = type;
-  const box = $('#activeService');
-  if (!type) {
-    box.hidden = true;
-    return;
-  }
-  $('#activeServiceText').textContent = `Seva chuni gayi: ${type}`;
-  box.hidden = false;
-  $('#uploadZone').scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-
 function renderServices() {
   const grid = $('#servicesGrid');
   grid.innerHTML = '';
@@ -515,19 +496,15 @@ function renderServices() {
     card.className = 'service-card';
     card.innerHTML = `
       <span class="service-icon">${s.icon}</span>
-      <span class="service-name">${esc(s.type)}</span>
+      <span class="service-name">${esc(s.type)} <span class="ext-badge">↗</span></span>
       <span class="service-desc">${esc(s.desc)}</span>
     `;
     card.addEventListener('click', () => {
-      setActiveService(s.type);
-      toast(`"${s.type}" chuni gayi — ab document upload karo`);
+      window.open(s.url, '_blank', 'noopener');
+      toast(`"${s.type}" ki official website khul rahi hai…`);
     });
     grid.appendChild(card);
   }
-}
-
-function wireServices() {
-  $('#activeServiceClear').addEventListener('click', () => setActiveService(null));
 }
 
 // ---------------------------------------------------------------- boot
@@ -535,7 +512,6 @@ function wireServices() {
 wireUpload();
 wirePreview();
 wireDashboard();
-wireServices();
 renderServices();
 loadDocTypes();
 loadCustomers();
