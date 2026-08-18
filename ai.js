@@ -171,9 +171,11 @@ const RESUME_PROMPT = [
   'Format rules:',
   '- Return the resume as MARKDOWN text only (no code fences, no extra commentary).',
   '- Start with the person name as a heading, then a contact line (phone | email | address).',
-  '- Then sections in this order: Summary/Objective, Education, Skills, Experience, Additional Info.',
+  '- Then sections in this order: Summary/Objective, Education, Skills, Languages, Hobbies, Experience, Additional Info.',
   '- Education: each entry as "- Degree, Institution, Year".',
   '- Skills: a single comma-separated line or short bullet list.',
+  '- Languages: only if provided, as a comma-separated line under "## Languages".',
+  '- Hobbies: only if provided, as a comma-separated line under "## Hobbies".',
   '- Experience: 2-4 bullet points per job, professional wording.',
   '- ATS-friendly, no tables, no fancy fonts.',
 ].join('\n');

@@ -533,6 +533,8 @@ const SAMPLE_RESUME = {
   education: 'B.Com, Banaras Hindu University, 2021\nIntermediate, UP Board, 2019',
   skills: 'Tally, MS Excel, Typing, GST Filing',
   experience: 'Accountant, City Traders, 2021-2024\n• Managed daily billing and GST returns\n• Prepared monthly reports',
+  languages: 'Hindi, English',
+  hobbies: 'Cricket, Reading, Music',
 };
 
 // ---- live resume preview (har keystroke pe update) ----
@@ -570,7 +572,8 @@ function liveResumePreview() {
   const isSample = !g('rsName');
   const F = isSample ? SAMPLE_RESUME : {
     name: g('rsName'), title: g('rsTitle'), email: g('rsEmail'), phone: g('rsPhone'), addr: g('rsAddress'),
-    objective: g('rsObjective'), education: g('rsEducation'), skills: g('rsSkills'), experience: g('rsExperience'),
+    objective: g('rsObjective'), education: g('rsEducation'), skills: g('rsSkills'),
+    languages: g('rsLanguages'), hobbies: g('rsHobbies'), experience: g('rsExperience'),
   };
   const name = F.name || 'Customer Name';
   const title = F.title;
@@ -580,6 +583,8 @@ function liveResumePreview() {
   const objective = F.objective;
   const education = F.education;
   const skills = F.skills;
+  const languages = F.languages;
+  const hobbies = F.hobbies;
   const experience = F.experience;
 
   let contact = [];
@@ -606,11 +611,14 @@ function liveResumePreview() {
   if (t.layout === 'serif') pv.style.fontFamily = "Georgia, 'Times New Roman', serif";
   else pv.style.fontFamily = '';
 
+  const chips = (txt) => txt.split(',').filter((s) => s.trim()).map((s) => `<span class="lp-chip">${esc(s.trim())}</span>`).join('');
   const body =
     sec('Objective', objective ? `<p>${esc(objective)}</p>` : '') +
     sec('Education', lines(education)) +
-    sec('Skills', skills ? `<div class="lp-chips">${skills.split(',').filter((s) => s.trim()).map((s) => `<span class="lp-chip">${esc(s.trim())}</span>`).join('')}</div>` : '') +
-    sec('Experience', lines(experience));
+    sec('Skills', skills ? `<div class="lp-chips">${chips(skills)}</div>` : '') +
+    sec('Experience', lines(experience)) +
+    sec('Languages', languages ? `<div class="lp-chips">${chips(languages)}</div>` : '') +
+    sec('Hobbies', hobbies ? `<div class="lp-chips">${chips(hobbies)}</div>` : '');
 
   const inner = head + `<div class="lp-body">${body || '<p class="lp-empty">Details bharo — yahan preview turant dikhega ✨</p>'}</div>`;
   const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
@@ -639,6 +647,8 @@ function renderPremium(t) {
     objective: g('rsObjective'),
     education: g('rsEducation'),
     skills: g('rsSkills'),
+    languages: g('rsLanguages'),
+    hobbies: g('rsHobbies'),
     experience: g('rsExperience'),
   };
   renderPremiumWith(t, document.getElementById('resumePreview'), d, isSample);
@@ -647,7 +657,7 @@ function renderPremium(t) {
 function renderPremiumWith(t, pv, d, isSample) {
   if (!pv) return;
   applyResumeFont(pv);
-  const { name, title, email, phone, addr, objective, education, skills, experience } = d;
+  const { name, title, email, phone, addr, objective, education, skills, languages, hobbies, experience } = d;
   const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
 
   const photo = resumePhoto
@@ -655,7 +665,8 @@ function renderPremiumWith(t, pv, d, isSample) {
     : '';
   const photoCircle = `<div class="lp2-photo-wrap"><div class="lp2-photo" ${photo}><span>👤</span></div></div>`;
   const lines = (txt) => txt.split('\n').filter((l) => l.trim()).map((l) => `<div class="lp2-line">${esc(l.trim())}</div>`).join('');
-  const chips = skills ? skills.split(',').filter((s) => s.trim()).map((s) => `<span class="lp2-chip">${esc(s.trim())}</span>`).join('') : '';
+  const chipRow = (txt) => (txt ? txt.split(',').filter((s) => s.trim()).map((s) => `<span class="lp2-chip">${esc(s.trim())}</span>`).join('') : '');
+  const chips = chipRow(skills);
   const contactLines = [email && `✉ ${esc(email)}`, phone && `✆ ${esc(phone)}`, addr && `📍 ${esc(addr)}`].filter(Boolean).join('\n');
   const whiteSec = (h, body) => (body ? `<div class="lp2-sec"><h3>${esc(h)}</h3><div class="lp2-sec-body">${body}</div></div>` : '');
   const mainSec = (h, body) => (body ? `<div class="lp2-sec"><h2>${esc(h)}</h2><div class="lp2-sec-body">${body}</div></div>` : '');
@@ -668,7 +679,7 @@ function renderPremiumWith(t, pv, d, isSample) {
         <div class="lp-band-name">${esc(name)}${title ? `<span>${esc(title)}</span>` : ''}</div>
       </div>`;
     pv.innerHTML = badge + `<div class="lp-band">${band}<div class="lp-band-cols">
-        <div class="lp-band-left">${whiteSec('Contact', lines(contactLines))}${whiteSec('Skills', chips)}${whiteSec('Education', lines(education))}</div>
+        <div class="lp-band-left">${whiteSec('Contact', lines(contactLines))}${whiteSec('Skills', chips)}${whiteSec('Languages', chipRow(languages))}${whiteSec('Hobbies', chipRow(hobbies))}${whiteSec('Education', lines(education))}</div>
         <div class="lp-band-right">${mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '')}${mainSec('Experience', lines(experience))}${mainSec('Education', lines(education))}</div>
       </div></div>`;
     updateResumeScore();
@@ -687,6 +698,8 @@ function renderPremiumWith(t, pv, d, isSample) {
         ${mainSec('🏆 Achievements', objective ? `<p>${esc(objective)}</p>` : '')}
         ${mainSec('🛠 Soft Skills', chips)}
         ${mainSec('💼 Experience', lines(experience))}
+        ${mainSec('🗣 Languages', chipRow(languages))}
+        ${mainSec('🎨 Hobbies', chipRow(hobbies))}
       </div>
     </div>`;
     updateResumeScore();
@@ -694,7 +707,7 @@ function renderPremiumWith(t, pv, d, isSample) {
   }
 
   // split / classic — sidebar + main
-  const sideBody = whiteSec('Contact', lines(contactLines)) + whiteSec('Skills', chips) + whiteSec('Education', lines(education));
+  const sideBody = whiteSec('Contact', lines(contactLines)) + whiteSec('Skills', chips) + whiteSec('Languages', chipRow(languages)) + whiteSec('Hobbies', chipRow(hobbies)) + whiteSec('Education', lines(education));
   const mainHead = `<div class="lp2-head"><div class="lp2-name">${esc(name)}</div>${title ? `<div class="lp2-title">${esc(title)}</div>` : ''}</div>`;
   const mainBody = mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '') + mainSec('Experience', lines(experience)) + mainSec('Education', lines(education));
   pv.innerHTML = badge + `<div class="lp2${t.layout === 'classic' ? ' classic' : ''}">
@@ -734,7 +747,7 @@ function parseMdSections(md) {
 
 function mdToPremiumData(md) {
   const p = parseMdSections(md);
-  const data = { name: p.name || 'Customer Name', title: '', email: '', phone: '', addr: '', objective: '', education: '', skills: '', experience: '' };
+  const data = { name: p.name || 'Customer Name', title: '', email: '', phone: '', addr: '', objective: '', education: '', skills: '', languages: '', hobbies: '', experience: '' };
   const parts = p.subtitle.split('|').map((s) => s.trim()).filter(Boolean);
   if (parts[0] && !/@|\+?[\d\s()-]{7,}/.test(parts[0])) data.title = parts[0];
   for (const s of parts) {
@@ -752,11 +765,15 @@ function mdToPremiumData(md) {
   if (ed) data.education = secLines(ed);
   const ex = sec(/experience|work|employment/i);
   if (ex) data.experience = secLines(ex);
-  const ad = sec(/additional|achievement|language/i);
+  const ad = sec(/additional|achievement/i);
   if (ad) {
     const extra = secLines(ad);
     data.experience = data.experience ? data.experience + '\n' + extra : extra;
   }
+  const lg = sec(/language/i);
+  if (lg) data.languages = lg.lines.map((l) => l.text).join(', ');
+  const hb = sec(/hobbi|interest/i);
+  if (hb) data.hobbies = hb.lines.map((l) => l.text).join(', ');
   return data;
 }
 
@@ -816,7 +833,7 @@ function hideResumeProgress(doneText) {
 }
 
 function wireLivePreview() {
-  ['rsTitle', 'rsName', 'rsPhone', 'rsEmail', 'rsAddress', 'rsDob', 'rsFather', 'rsObjective', 'rsEducation', 'rsSkills', 'rsExperience'].forEach((id) => {
+  ['rsTitle', 'rsName', 'rsPhone', 'rsEmail', 'rsAddress', 'rsDob', 'rsFather', 'rsObjective', 'rsEducation', 'rsSkills', 'rsLanguages', 'rsHobbies', 'rsExperience'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', liveResumePreview);
   });
@@ -834,6 +851,8 @@ function collectResumeDetails() {
     objective: $('#rsObjective').value.trim(),
     education: $('#rsEducation').value.trim(),
     skills: $('#rsSkills').value.trim(),
+    languages: $('#rsLanguages').value.trim(),
+    hobbies: $('#rsHobbies').value.trim(),
     experience: $('#rsExperience').value.trim(),
   };
 }
@@ -1335,6 +1354,8 @@ function wireResume() {
       $('#rsObjective').value = f.objective || '';
       $('#rsEducation').value = f.education || '';
       $('#rsSkills').value = f.skills || '';
+      $('#rsLanguages').value = f.languages || '';
+      $('#rsHobbies').value = f.hobbies || '';
       $('#rsExperience').value = f.experience || text;
       showResumeForm();
       liveResumePreview();
