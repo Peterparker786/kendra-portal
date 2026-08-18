@@ -287,10 +287,14 @@
           <div id="resumeFormWrap" hidden>
             <div class="resume-form-head">
               <h2>📝 Customer ki details bharo <span class="tpl-selected" id="tplSelectedBadge"></span></h2>
+              <div class="builder-tabs">
+                <button class="builder-tab active" id="editTabBtn" type="button">✏️ Edit</button>
+                <button class="builder-tab" id="customizeTabBtn" type="button">🎨 Customize</button>
+              </div>
               <p class="hint">Details bharo → <b>AI se Resume banao</b> dabao → professional resume tayyar! ⬇ Download ya 🖨 Print kar sakte ho.</p>
             </div>
             <div class="resume-grid">
-              <div class="resume-form">
+              <div class="resume-form" id="resumeFormCol">
                 <div class="rs-score">
                   <div class="rs-score-top"><span>Your resume score</span><b id="rsScoreVal">0%</b></div>
                   <div class="rs-score-track"><div class="rs-score-fill" id="rsScoreFill"></div></div>
@@ -340,6 +344,10 @@
                   <button class="btn primary big" id="resumeMakeBtn">✨ AI se Resume banao</button>
                 </div>
                 <p class="hint" id="resumeStatus" hidden></p>
+              </div>
+              <div class="resume-form" id="resumeTplCol" hidden>
+                <div class="field-label">🎨 Template chuno <span class="hint-inline">(click karte hi right side preview update hota hai)</span></div>
+                <div id="resumeTplGrid" class="cust-grid"></div>
               </div>
               <div class="resume-result">
                 <div class="resume-result-head">

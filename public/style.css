@@ -1221,3 +1221,58 @@ body {
 .lp-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 18px 0; }
 .resume-preview.tpl-twocol .lp-banner { margin: 0; border-radius: 0; }
 .resume-preview.tpl-twocol .lp-contact { border-radius: 0; }
+
+/* ---------------- builder tabs (Edit | Customize) ---------------- */
+.builder-tabs {
+  display: flex; gap: 6px; margin: 10px 0 4px;
+  background: #eef1f6; border-radius: 10px; padding: 4px; width: fit-content;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+.builder-tab {
+  border: none; cursor: pointer; font-weight: 700; font-size: 13.5px;
+  padding: 7px 20px; border-radius: 8px; color: #64748b; background: transparent;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s;
+}
+.builder-tab:hover { color: #1e293b; }
+.builder-tab.active {
+  background: #fff; color: #3730a3;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.12), inset 0 -2px 0 rgba(79, 70, 229, 0.35);
+}
+
+/* ---------------- customize panel — template grid (resume.io jaisa) ---------------- */
+.cust-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 6px; }
+.cust-card {
+  background: #fff; border: 2px solid #e2e8f0; border-radius: 12px; padding: 9px;
+  cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s, transform 0.15s;
+}
+.cust-card:hover { border-color: #a5b4fc; box-shadow: 0 8px 18px -10px rgba(79, 70, 229, 0.35); transform: translateY(-2px); }
+.cust-card.selected {
+  border-color: var(--accent, #4f46e5);
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18), 0 8px 18px -10px rgba(79, 70, 229, 0.4);
+}
+.cust-thumb {
+  border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px;
+  background: #fff; min-height: 108px; overflow: hidden;
+}
+.cust-thumb.side { display: flex; padding: 0; }
+.cust-side { width: 22px; flex-shrink: 0; }
+.cust-body { flex: 1; padding: 12px 14px; min-width: 0; }
+.cust-name { font-size: 12px; font-weight: 800; color: #111827; margin-bottom: 6px; }
+.cust-line { height: 5px; border-radius: 3px; margin-bottom: 8px; }
+.cust-row { height: 6px; background: #e2e8f0; border-radius: 3px; margin-bottom: 6px; }
+.cust-row.d { width: 65%; }
+.cust-foot { display: flex; justify-content: space-between; align-items: center; padding: 8px 2px 0; }
+.cust-card.selected .cust-foot .tpl-name { color: var(--accent, #4f46e5); }
+
+/* ---------------- naye template variants ---------------- */
+.resume-preview.tpl-confetti .lp-body {
+  background-image: radial-gradient(circle, rgba(124, 58, 237, 0.14) 1.6px, transparent 1.6px);
+  background-size: 20px 20px;
+}
+.resume-preview.tpl-confetti .lp-sec, .resume-preview.tpl-confetti .lp-sec-body { background: rgba(255, 255, 255, 0.9); padding: 8px 10px; border-radius: 8px; }
+.resume-preview.tpl-splash { border-left: 12px solid var(--accent); }
+.resume-preview.tpl-splash .lp-banner { text-align: left; }
+.resume-preview.tpl-rirekisho h1, .resume-preview.tpl-rirekisho .lp-name { font-family: Georgia, 'Times New Roman', serif; }
+.resume-preview.tpl-executive .lp-name { letter-spacing: 2px; }
+.resume-preview.tpl-creative .lp-banner { background: linear-gradient(135deg, var(--accent), #f472b6) !important; }
+.resume-preview.tpl-gold .lp-banner { background: linear-gradient(135deg, #a16207, #d97706) !important; }

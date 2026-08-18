@@ -734,8 +734,17 @@ const RESUME_TEMPLATES = [
   { id: 'simple', name: 'Simple', cat: 'Simple', accent: '#64748b', layout: 'single' },
   { id: 'minimal', name: 'Minimal', cat: 'Simple', accent: '#9ca3af', layout: 'minimal' },
   { id: 'elegant', name: 'Elegant Gold', cat: 'Elegant', accent: '#b45309', layout: 'serif' },
+  { id: 'confetti', name: 'Confetti', cat: 'Creative', accent: '#7c3aed', layout: 'confetti' },
+  { id: 'splash', name: 'Color Splash', cat: 'Creative', accent: '#0891b2', layout: 'splash' },
+  { id: 'rirekisho', name: 'Rirekisho', cat: 'Professional', accent: '#b45309', layout: 'serif' },
+  { id: 'academic', name: 'Academic', cat: 'Professional', accent: '#475569', layout: 'bars' },
+  { id: 'entry', name: 'Entry Level', cat: 'Simple', accent: '#0f766e', layout: 'single' },
+  { id: 'executive', name: 'Executive', cat: 'Professional', accent: '#1e1b4b', layout: 'single' },
+  { id: 'creative', name: 'Creative', cat: 'Modern', accent: '#db2777', layout: 'gradient' },
+  { id: 'clean', name: 'Clean', cat: 'Simple', accent: '#334155', layout: 'minimal' },
+  { id: 'gold', name: 'Gold Classic', cat: 'Elegant', accent: '#a16207', layout: 'serif' },
 ];
-const TEMPLATE_FILTERS = ['All templates', 'Simple', 'Professional', 'Two-column', 'Modern', 'Elegant'];
+const TEMPLATE_FILTERS = ['All templates', 'Simple', 'Professional', 'Two-column', 'Modern', 'Elegant', 'Creative'];
 let selectedTemplate = RESUME_TEMPLATES[2]; // default: Modern Blue
 
 function miniPreview(t) {
@@ -802,6 +811,46 @@ function selectTemplate(t) {
   liveResumePreview(); // naye template ke colors preview me turant dikhein
   // template chuna -> "How do you want to start?" (naya ya purana upload)
   $('#resumeStartModal').hidden = false;
+}
+
+// ---- customize panel (Edit | Customize tabs — resume.io jaisa) ----
+
+function renderCustomizeGrid() {
+  const grid = $('#resumeTplGrid');
+  if (!grid) return;
+  grid.innerHTML = RESUME_TEMPLATES.map((t) => {
+    const sel = selectedTemplate.id === t.id ? ' selected' : '';
+    const inner =
+      `<div class="cust-name">Customer Name</div>
+      <div class="cust-line" style="background:${t.accent}"></div>
+      <div class="cust-row"></div><div class="cust-row"></div>
+      <div class="cust-row d"></div>`;
+    const thumb = t.layout === 'sidebar'
+      ? `<div class="cust-thumb side"><div class="cust-side" style="background:${t.accent}"></div><div class="cust-body">${inner}</div></div>`
+      : `<div class="cust-thumb">${inner}</div>`;
+    return `<div class="cust-card${sel}" data-id="${t.id}" title="${esc(t.name)}">${thumb}<div class="cust-foot"><span class="tpl-name">${esc(t.name)}</span><span class="tpl-cat">${esc(t.cat)}</span></div></div>`;
+  }).join('');
+  grid.querySelectorAll('.cust-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const t = RESUME_TEMPLATES.find((x) => x.id === card.dataset.id);
+      if (!t) return;
+      selectedTemplate = t;
+      $('#tplSelectedBadge').textContent = `Template: ${t.name}`;
+      $('#tplSelectedBadge').style.color = t.accent;
+      grid.querySelectorAll('.cust-card').forEach((c) => c.classList.remove('selected'));
+      card.classList.add('selected');
+      liveResumePreview(); // turant preview update
+    });
+  });
+}
+
+function setBuilderTab(mode) {
+  const edit = mode === 'edit';
+  $('#resumeFormCol').hidden = !edit;
+  $('#resumeTplCol').hidden = edit;
+  $('#editTabBtn').classList.toggle('active', edit);
+  $('#customizeTabBtn').classList.toggle('active', !edit);
+  if (!edit) renderCustomizeGrid();
 }
 
 function openTemplatePage() {
@@ -905,6 +954,8 @@ function wireResume() {
   $('#resumeDownloadBtn').addEventListener('click', downloadResume);
   $('#resumePrintBtn').addEventListener('click', printResume);
   $('#rsFillBtn').addEventListener('click', fillFromCustomer);
+  $('#editTabBtn').addEventListener('click', () => setBuilderTab('edit'));
+  $('#customizeTabBtn').addEventListener('click', () => setBuilderTab('customize'));
   wireLivePreview();
   liveResumePreview();
 }
