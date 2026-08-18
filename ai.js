@@ -170,7 +170,7 @@ const RESUME_PROMPT = [
   '',
   'Format rules:',
   '- Return the resume as MARKDOWN text only (no code fences, no extra commentary).',
-  '- Start with the person name as a heading, then a contact line (phone | email | address).',
+  '- Start with the person name as a heading, then a contact line (phone | email | address | LinkedIn | portfolio), including LinkedIn/portfolio only if provided.',
   '- Then sections in this order: Summary/Objective, Education, Skills, Languages, Hobbies, Experience, Additional Info.',
   '- Education: each entry as "- Degree, Institution, Year".',
   '- Skills: a single comma-separated line or short bullet list.',

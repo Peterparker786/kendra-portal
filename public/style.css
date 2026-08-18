@@ -1503,3 +1503,6 @@ body {
 .resume-preview.tpl-forest .lp-sec h2 { color: #166534; border-color: #86efac; }
 .resume-preview.tpl-ocean .lp-banner { background: linear-gradient(90deg, #2563eb, #1e40af) !important; }
 .resume-preview.tpl-ocean .lp-sec h2 { color: #1d4ed8; border-color: #93c5fd; }
+
+/* link chips (LinkedIn / portfolio) */
+.lp-chip.link { color: #1d4ed8; background: #eff6ff; border-color: #bfdbfe; }

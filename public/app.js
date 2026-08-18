@@ -535,6 +535,8 @@ const SAMPLE_RESUME = {
   experience: 'Accountant, City Traders, 2021-2024\n• Managed daily billing and GST returns\n• Prepared monthly reports',
   languages: 'Hindi, English',
   hobbies: 'Cricket, Reading, Music',
+  linkedin: 'linkedin.com/in/ramesh-kumar',
+  portfolio: 'rameshkumar.dev',
 };
 
 // ---- live resume preview (har keystroke pe update) ----
@@ -543,6 +545,7 @@ function updateResumeScore() {
   const fields = {
     rsTitle: 10, rsName: 15, rsPhone: 10, rsEmail: 10, rsAddress: 5, rsDob: 5,
     rsFather: 5, rsObjective: 15, rsEducation: 15, rsSkills: 10, rsExperience: 5,
+    rsLanguages: 3, rsHobbies: 2, rsLinkedin: 2, rsPortfolio: 3,
   };
   let got = 0;
   for (const [id, w] of Object.entries(fields)) {
@@ -573,7 +576,8 @@ function liveResumePreview() {
   const F = isSample ? SAMPLE_RESUME : {
     name: g('rsName'), title: g('rsTitle'), email: g('rsEmail'), phone: g('rsPhone'), addr: g('rsAddress'),
     objective: g('rsObjective'), education: g('rsEducation'), skills: g('rsSkills'),
-    languages: g('rsLanguages'), hobbies: g('rsHobbies'), experience: g('rsExperience'),
+    languages: g('rsLanguages'), hobbies: g('rsHobbies'),
+    linkedin: g('rsLinkedin'), portfolio: g('rsPortfolio'), experience: g('rsExperience'),
   };
   const name = F.name || 'Customer Name';
   const title = F.title;
@@ -585,6 +589,8 @@ function liveResumePreview() {
   const skills = F.skills;
   const languages = F.languages;
   const hobbies = F.hobbies;
+  const linkedin = F.linkedin;
+  const portfolio = F.portfolio;
   const experience = F.experience;
 
   let contact = [];
@@ -612,13 +618,15 @@ function liveResumePreview() {
   else pv.style.fontFamily = '';
 
   const chips = (txt) => txt.split(',').filter((s) => s.trim()).map((s) => `<span class="lp-chip">${esc(s.trim())}</span>`).join('');
+  const linkChips = [linkedin && `🔗 ${esc(linkedin)}`, portfolio && `🌐 ${esc(portfolio)}`].filter(Boolean).map((l) => `<span class="lp-chip link">${l}</span>`).join('');
   const body =
     sec('Objective', objective ? `<p>${esc(objective)}</p>` : '') +
     sec('Education', lines(education)) +
     sec('Skills', skills ? `<div class="lp-chips">${chips(skills)}</div>` : '') +
     sec('Experience', lines(experience)) +
     sec('Languages', languages ? `<div class="lp-chips">${chips(languages)}</div>` : '') +
-    sec('Hobbies', hobbies ? `<div class="lp-chips">${chips(hobbies)}</div>` : '');
+    sec('Hobbies', hobbies ? `<div class="lp-chips">${chips(hobbies)}</div>` : '') +
+    sec('Links', linkChips);
 
   const inner = head + `<div class="lp-body">${body || '<p class="lp-empty">Details bharo — yahan preview turant dikhega ✨</p>'}</div>`;
   const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
@@ -649,6 +657,8 @@ function renderPremium(t) {
     skills: g('rsSkills'),
     languages: g('rsLanguages'),
     hobbies: g('rsHobbies'),
+    linkedin: g('rsLinkedin'),
+    portfolio: g('rsPortfolio'),
     experience: g('rsExperience'),
   };
   renderPremiumWith(t, document.getElementById('resumePreview'), d, isSample);
@@ -657,7 +667,7 @@ function renderPremium(t) {
 function renderPremiumWith(t, pv, d, isSample) {
   if (!pv) return;
   applyResumeFont(pv);
-  const { name, title, email, phone, addr, objective, education, skills, languages, hobbies, experience } = d;
+  const { name, title, email, phone, addr, objective, education, skills, languages, hobbies, linkedin, portfolio, experience } = d;
   const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
 
   const photo = resumePhoto
@@ -667,7 +677,7 @@ function renderPremiumWith(t, pv, d, isSample) {
   const lines = (txt) => txt.split('\n').filter((l) => l.trim()).map((l) => `<div class="lp2-line">${esc(l.trim())}</div>`).join('');
   const chipRow = (txt) => (txt ? txt.split(',').filter((s) => s.trim()).map((s) => `<span class="lp2-chip">${esc(s.trim())}</span>`).join('') : '');
   const chips = chipRow(skills);
-  const contactLines = [email && `✉ ${esc(email)}`, phone && `✆ ${esc(phone)}`, addr && `📍 ${esc(addr)}`].filter(Boolean).join('\n');
+  const contactLines = [email && `✉ ${esc(email)}`, phone && `✆ ${esc(phone)}`, addr && `📍 ${esc(addr)}`, linkedin && `🔗 ${esc(linkedin)}`, portfolio && `🌐 ${esc(portfolio)}`].filter(Boolean).join('\n');
   const whiteSec = (h, body) => (body ? `<div class="lp2-sec"><h3>${esc(h)}</h3><div class="lp2-sec-body">${body}</div></div>` : '');
   const mainSec = (h, body) => (body ? `<div class="lp2-sec"><h2>${esc(h)}</h2><div class="lp2-sec-body">${body}</div></div>` : '');
 
@@ -747,11 +757,12 @@ function parseMdSections(md) {
 
 function mdToPremiumData(md) {
   const p = parseMdSections(md);
-  const data = { name: p.name || 'Customer Name', title: '', email: '', phone: '', addr: '', objective: '', education: '', skills: '', languages: '', hobbies: '', experience: '' };
+  const data = { name: p.name || 'Customer Name', title: '', email: '', phone: '', addr: '', objective: '', education: '', skills: '', languages: '', hobbies: '', linkedin: '', portfolio: '', experience: '' };
   const parts = p.subtitle.split('|').map((s) => s.trim()).filter(Boolean);
   if (parts[0] && !/@|\+?[\d\s()-]{7,}/.test(parts[0])) data.title = parts[0];
   for (const s of parts) {
-    if (/\S+@\S+/.test(s)) data.email = s;
+    if (/linkedin\.com|\blinkedin\b/i.test(s)) data.linkedin = s;
+    else if (/\S+@\S+/.test(s)) data.email = s;
     else if (/\+?[\d\s()-]{7,}/.test(s)) data.phone = s;
     else if (!data.addr) data.addr = s;
   }
@@ -774,6 +785,13 @@ function mdToPremiumData(md) {
   if (lg) data.languages = lg.lines.map((l) => l.text).join(', ');
   const hb = sec(/hobbi|interest/i);
   if (hb) data.hobbies = hb.lines.map((l) => l.text).join(', ');
+  const lk = sec(/link|portfolio|website|contact/i);
+  if (lk) {
+    for (const l of lk.lines) {
+      if (/linkedin/i.test(l.text)) data.linkedin = l.text.replace(/^[^:]*:\s*/, '');
+      else if (!data.portfolio) data.portfolio = l.text.replace(/^[^:]*:\s*/, '');
+    }
+  }
   return data;
 }
 
@@ -833,7 +851,7 @@ function hideResumeProgress(doneText) {
 }
 
 function wireLivePreview() {
-  ['rsTitle', 'rsName', 'rsPhone', 'rsEmail', 'rsAddress', 'rsDob', 'rsFather', 'rsObjective', 'rsEducation', 'rsSkills', 'rsLanguages', 'rsHobbies', 'rsExperience'].forEach((id) => {
+  ['rsTitle', 'rsName', 'rsPhone', 'rsEmail', 'rsAddress', 'rsDob', 'rsFather', 'rsObjective', 'rsEducation', 'rsSkills', 'rsLanguages', 'rsHobbies', 'rsLinkedin', 'rsPortfolio', 'rsExperience'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('input', liveResumePreview);
   });
@@ -853,6 +871,8 @@ function collectResumeDetails() {
     skills: $('#rsSkills').value.trim(),
     languages: $('#rsLanguages').value.trim(),
     hobbies: $('#rsHobbies').value.trim(),
+    linkedin: $('#rsLinkedin').value.trim(),
+    portfolio: $('#rsPortfolio').value.trim(),
     experience: $('#rsExperience').value.trim(),
   };
 }
@@ -1356,6 +1376,8 @@ function wireResume() {
       $('#rsSkills').value = f.skills || '';
       $('#rsLanguages').value = f.languages || '';
       $('#rsHobbies').value = f.hobbies || '';
+      $('#rsLinkedin').value = f.linkedin || '';
+      $('#rsPortfolio').value = f.portfolio || '';
       $('#rsExperience').value = f.experience || text;
       showResumeForm();
       liveResumePreview();
