@@ -185,6 +185,27 @@ export function deleteDocument(id) {
   return Number(info.changes) > 0;
 }
 
+export function dashboardStats() {
+  const customers = db.prepare('SELECT COUNT(*) AS n FROM customers').get().n;
+  const documents = db.prepare('SELECT COUNT(*) AS n FROM documents').get().n;
+  const services = db.prepare("SELECT COUNT(DISTINCT doc_type) AS n FROM documents WHERE doc_type != ''").get().n;
+  const monthDocs = db
+    .prepare("SELECT COUNT(*) AS n FROM documents WHERE uploaded_at >= datetime('now', 'start of month')")
+    .get().n;
+  const byType = db
+    .prepare("SELECT doc_type AS type, COUNT(*) AS count FROM documents WHERE doc_type != '' GROUP BY doc_type ORDER BY count DESC")
+    .all()
+    .map((r) => ({ type: r.type, count: Number(r.count) }));
+  const activity = db
+    .prepare(
+      `SELECT d.doc_type AS type, d.filename, d.uploaded_at, c.name AS customer
+       FROM documents d JOIN customers c ON c.id = d.customer_id
+       ORDER BY d.id DESC LIMIT 6`
+    )
+    .all();
+  return { customers, documents, services, monthDocs, byType, activity };
+}
+
 export function docTypeOptions(base) {
   const used = db
     .prepare("SELECT DISTINCT doc_type FROM documents WHERE doc_type != '' ORDER BY doc_type")

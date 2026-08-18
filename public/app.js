@@ -346,6 +346,129 @@ function updateStats() {
   $('#statCustomers').textContent = state.customers.length;
   const docs = state.customers.reduce((sum, c) => sum + (c.doc_count || 0), 0);
   $('#statDocs').textContent = docs;
+  loadStats(); // services / month / recent activity / donut bhi refresh
+}
+
+// ---------------------------------------------------------------- dashboard extras
+
+const DONUT_COLORS = ['#818cf8', '#38bdf8', '#34d399', '#fb923c', '#f472b6', '#a78bfa', '#facc15', '#94a3b8'];
+
+function loadStats() {
+  fetch('/api/stats')
+    .then((r) => r.json())
+    .then((d) => {
+      if (!d) return;
+      $('#statCustomers').textContent = d.customers;
+      $('#statDocs').textContent = d.documents;
+      $('#statServices').textContent = d.services;
+      $('#statMonth').textContent = d.monthDocs;
+      renderRecent(d.activity || []);
+      renderDonut(d.byType || [], d.documents);
+    })
+    .catch(() => {});
+}
+
+function renderRecent(activity) {
+  const box = $('#recentActivity');
+  if (!box) return;
+  if (!activity.length) {
+    box.innerHTML = '<p class="empty">Abhi koi activity nahi.</p>';
+    return;
+  }
+  const icons = ['ri-green', 'ri-blue', 'ri-orange', 'ri-purple'];
+  const emojis = ['📤', '📄', '🖨️', '🔍'];
+  box.innerHTML = activity
+    .map((a, i) => {
+      const title = `${a.customer || 'Customer'} — ${a.type || 'Document'}`;
+      return `<div class="recent-item">
+        <div class="recent-icon ${icons[i % icons.length]}">${emojis[i % emojis.length]}</div>
+        <div class="recent-body">
+          <div class="recent-title">${escapeHtml(title)}</div>
+          <div class="recent-meta">${escapeHtml(a.filename || '')}</div>
+        </div>
+        <div class="recent-time">${escapeHtml(timeAgo(a.uploaded_at))}</div>
+      </div>`;
+    })
+    .join('');
+}
+
+function timeAgo(iso) {
+  const s = String(iso || '').replace(' ', 'T') + 'Z';
+  const d = new Date(s);
+  if (isNaN(d.getTime())) return '';
+  const m = Math.floor((Date.now() - d.getTime()) / 60000);
+  if (m < 1) return 'abhi'; // <1 min
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + ' hr';
+  return Math.floor(h / 24) + ' d';
+}
+
+function renderDonut(byType, total) {
+  const donut = $('#donut');
+  const legend = $('#donutLegend');
+  if (!donut || !legend) return;
+  $('#donutTotal').textContent = total;
+  if (!byType.length) {
+    donut.style.background = 'conic-gradient(#e5e9f2 0% 100%)';
+    legend.innerHTML = '<p class="empty">Koi document nahi.</p>';
+    return;
+  }
+  let acc = 0;
+  const segs = [];
+  const rows = [];
+  byType.slice(0, 8).forEach((b, i) => {
+    const pct = total ? (b.count / total) * 100 : 0;
+    const from = acc;
+    acc += pct;
+    const color = DONUT_COLORS[i % DONUT_COLORS.length];
+    segs.push(`${color} ${from}% ${acc}%`);
+    rows.push(
+      `<div class="legend-row"><span class="legend-dot" style="background:${color}"></span><span class="legend-name">${escapeHtml(b.type)}</span><span class="legend-val">${b.count} (${pct.toFixed(1)}%)</span></div>`
+    );
+  });
+  donut.style.background = `conic-gradient(${segs.join(', ')})`;
+  legend.innerHTML = rows.join('');
+}
+
+function wireNav() {
+  const scrollTo = (el) => el && el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  const setActive = (id) => {
+    document.querySelectorAll('.side-item').forEach((i) => i.classList.remove('active'));
+    const el = document.getElementById(id);
+    if (el) el.classList.add('active');
+  };
+  $('#navDash').addEventListener('click', () => {
+    scrollTo(document.querySelector('.main-col .wrap'));
+    setActive('navDash');
+  });
+  $('#navUpload').addEventListener('click', () => {
+    scrollTo($('#uploadZone'));
+    setActive('navUpload');
+  });
+  $('#navReview').addEventListener('click', () => {
+    scrollTo($('#customerList'));
+    setActive('navReview');
+  });
+  $('#navCustomers').addEventListener('click', () => {
+    scrollTo($('#customerList'));
+    setActive('navCustomers');
+  });
+  $('#navDocs').addEventListener('click', () => {
+    scrollTo($('#customerList'));
+    setActive('navDocs');
+  });
+  $('#qaUpload').addEventListener('click', () => scrollTo($('#uploadZone')));
+  $('#qaReview').addEventListener('click', () => scrollTo($('#customerList')));
+  $('#qaPassport').addEventListener('click', () => $('#passportBtn').click());
+  $('#qaResizer').addEventListener('click', () => $('#resizerBtn').click());
+  $('#qaServices').addEventListener('click', () => $('#servicesBtn').click());
+  document.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+      e.preventDefault();
+      $('#searchBox').focus();
+    }
+  });
 }
 
 function renderCustomers() {
@@ -813,7 +936,9 @@ wireSheetBtn();
 wireServices();
 wireResizer();
 wirePassport();
+wireNav();
 renderServices();
 loadDocTypes();
 loadServices();
 loadCustomers();
+loadStats();

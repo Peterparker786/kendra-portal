@@ -149,6 +149,14 @@ app.get('/api/settings', (_req, res) => {
   res.json({ sheetUrl: GOOGLE_SHEET_URL || '' });
 });
 
+app.get('/api/stats', (_req, res, next) => {
+  try {
+    res.json(store.dashboardStats());
+  } catch (err) {
+    next(err);
+  }
+});
+
 app.get('/api/doc-types', (_req, res, next) => {
   try {
     res.json(store.docTypeOptions(DOC_TYPES));
