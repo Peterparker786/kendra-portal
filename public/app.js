@@ -847,33 +847,76 @@ function resumePageHtml(name, md) {
     `ul{margin:6px 0;padding-left:22px}@media print{body{margin:0;max-width:none}}</style></head><body>${body}</body></html>`;
 }
 
+// PDF = preview ka exact render (html-to-image + jsPDF) — preview aur PDF dono same dikhte hain
+function saveBlobPdf(blob, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+async function pdfFromPreview() {
+  const mod = await import('/vendor/html-to-image/index.js');
+  if (typeof window.jspdf === 'undefined') {
+    throw new Error('PDF library load nahi hui — internet check karo');
+  }
+  const src = document.getElementById('resumePreview');
+  const holder = document.createElement('div');
+  holder.style.cssText = 'position:fixed;left:-12000px;top:0;width:794px;background:#fff;z-index:-1'; // A4 width @96dpi
+  const clone = src.cloneNode(true);
+  clone.style.cssText = 'width:794px;max-height:none;margin:0;border-radius:0;box-shadow:none;';
+  holder.appendChild(clone);
+  document.body.appendChild(holder);
+  try {
+    const canvas = await mod.toCanvas(clone, { pixelRatio: 2, backgroundColor: '#ffffff' });
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pw = 210, ph = 297;
+    const imgH = (canvas.height * pw) / canvas.width;
+    const pages = Math.max(1, Math.ceil(imgH / ph));
+    const img = canvas.toDataURL('image/jpeg', 0.95);
+    for (let i = 0; i < pages; i++) {
+      if (i > 0) pdf.addPage();
+      pdf.addImage(img, 'JPEG', 0, -i * ph, pw, imgH, undefined, 'FAST');
+    }
+    pdf.save(`resume-${(document.getElementById('rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '')}.pdf`);
+  } finally {
+    holder.remove();
+  }
+}
+
+async function pdfFromServer() {
+  const res = await fetch('/api/resume/pdf', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ markdown: resumeMarkdown, accent: selectedTemplate.accent, template: selectedTemplate.id, photo: resumePhoto || '' }),
+  });
+  if (!res.ok) {
+    const e = await res.json().catch(() => ({}));
+    throw new Error(e.error || 'PDF fail');
+  }
+  saveBlobPdf(await res.blob(), `resume-${(document.getElementById('rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '')}.pdf`);
+}
+
 async function downloadResume() {
   if (!resumeMarkdown) return;
-  const name = ($('#rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '');
   const btn = $('#resumeDownloadBtn');
   const old = btn.innerHTML;
   btn.disabled = true;
   btn.textContent = '⏳ PDF bana raha hai…';
   try {
-    const res = await fetch('/api/resume/pdf', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown: resumeMarkdown, accent: selectedTemplate.accent, template: selectedTemplate.id, photo: resumePhoto || '' }),
-    });
-    if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
-      throw new Error(e.error || 'PDF fail');
-    }
-    const blob = await res.blob();
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `resume-${name}.pdf`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    await pdfFromPreview();
     toast('PDF download ho gaya! 📄');
   } catch (err) {
-    console.error(err);
-    toast('PDF bana me error: ' + err.message, 'err');
+    console.error('preview PDF fail, server fallback:', err.message);
+    try {
+      await pdfFromServer();
+      toast('PDF download ho gaya! 📄');
+    } catch (err2) {
+      console.error(err2);
+      toast('PDF bana me error: ' + err2.message, 'err');
+    }
   } finally {
     btn.disabled = false;
     btn.innerHTML = old;
