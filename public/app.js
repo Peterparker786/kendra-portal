@@ -311,6 +311,9 @@ function buildPayload() {
     type,
     status: 'Submitted',
     remarks: $('#remarksInput').value.trim(),
+    fields: p.fields
+      .filter((f) => (f.key || '').trim() && (f.value || '').trim())
+      .map((f) => ({ key: f.key.trim(), value: f.value.trim() })),
   };
   const extra = [];
   for (const f of p.fields) {
@@ -480,6 +483,66 @@ function renderDonut(byType, total) {
   });
   donut.style.background = `conic-gradient(${segs.join(', ')})`;
   legend.innerHTML = rows.join('');
+}
+
+// ---------------------------------------------------------------- document details modal
+
+function openDocDetails(profile, d) {
+  const modal = $('#docModal');
+  if (!modal) return;
+  $('#docModalType').textContent = d.doc_type || 'Document';
+  const stClass = /pending/i.test(d.status) ? 'pending' : /issued|approved/i.test(d.status) ? 'issued' : /rejected/i.test(d.status) ? 'rejected' : '';
+  const st = $('#docModalStatus');
+  st.className = `status-badge ${stClass}`;
+  st.textContent = d.status || 'Submitted';
+
+  const dd = (label, value) =>
+    value ? `<div class="dd-item"><span class="dd-label">${esc(label)}</span><span class="dd-value">${esc(value)}</span></div>` : '';
+
+  $('#docModalDoc').innerHTML =
+    dd('Document No', d.doc_no) +
+    dd('Issue Date', d.issue_date) +
+    dd('Valid Till', d.valid_till) +
+    dd('Issued By', d.issued_by) +
+    dd('Remarks', d.remarks) +
+    dd('File', d.filename) +
+    dd('Uploaded', d.uploaded_at) || '<p class="empty">Koi document details nahi.</p>';
+
+  $('#docModalCust').innerHTML =
+    dd('Customer Name', profile.name) +
+    dd('Date of Birth', profile.dob) +
+    dd('Gender', profile.gender) +
+    dd('Phone / Email', profile.phone) +
+    dd('Aadhaar No', profile.aadhaar) +
+    dd('Address', profile.address) +
+    dd("Father's Name", profile.father) +
+    dd('University Reg No', profile.reg_no) || '<p class="empty">Koi customer details nahi.</p>';
+
+  // extracted fields (jo upload ke waqt mili thi)
+  let extracted = '';
+  try {
+    const f = JSON.parse(d.fields_json || '[]');
+    if (Array.isArray(f) && f.length) {
+      extracted = f
+        .map((x) => (x && x.key && x.value ? dd(x.key, x.value) : ''))
+        .join('');
+    }
+  } catch {
+    extracted = '';
+  }
+  $('#docModalExtractedWrap').hidden = !extracted;
+  $('#docModalExtracted').innerHTML = extracted || '';
+
+  modal.hidden = false;
+}
+
+function wireDocModal() {
+  $('#docModalClose').addEventListener('click', () => {
+    $('#docModal').hidden = true;
+  });
+  $('#docModal').addEventListener('click', (e) => {
+    if (e.target === $('#docModal')) $('#docModal').hidden = true;
+  });
 }
 
 function wireNav() {
@@ -653,11 +716,17 @@ function renderProfile() {
       </div>
       <button class="btn danger sm" data-del="${d.id}">Delete</button>
     `;
+    // poore card pe click -> saari details ka preview modal
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('[data-del]')) return; // delete button click pe modal na khule
+      openDocDetails(profile, d);
+    });
     list.appendChild(row);
   });
 
   list.querySelectorAll('[data-del]').forEach((btn) =>
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       if (!confirm('Yeh document profile se delete kar dein?')) return;
       fetch(`/api/documents/${btn.dataset.del}`, { method: 'DELETE' })
         .then(() => selectCustomer(profile.id))
@@ -987,6 +1056,7 @@ wireSheetBtn();
 wireServices();
 wireResizer();
 wirePassport();
+wireDocModal();
 wireNav();
 renderServices();
 loadDocTypes();

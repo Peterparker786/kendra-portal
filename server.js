@@ -95,6 +95,7 @@ app.post('/api/records', (req, res, next) => {
       issuedBy: (body.document || {}).issuedBy,
       status: (body.document || {}).status,
       remarks: (body.document || {}).remarks,
+      fields: (body.document || {}).fields,
       filename: body.filename || 'document',
     });
 

@@ -54,6 +54,12 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_cust_name ON customers(name);
 `);
 
+// migration: documents me extracted-fields (JSON) column add karo (purani DBs ke liye)
+const docCols = db.prepare('PRAGMA table_info(documents)').all();
+if (docCols.length && !docCols.some((c) => c.name === 'fields_json')) {
+  db.exec("ALTER TABLE documents ADD COLUMN fields_json TEXT DEFAULT ''");
+}
+
 function digits(s) {
   return String(s || '').replace(/\D/g, '');
 }
@@ -134,12 +140,12 @@ export function updateCustomerFields(id, { phone, aadhaar, dob, gender, address,
   return db.prepare('SELECT * FROM customers WHERE id = ?').get(id);
 }
 
-export function addDocument({ customerId, docType, docNo, issueDate, validTill, issuedBy, status, remarks, filename }) {
+export function addDocument({ customerId, docType, docNo, issueDate, validTill, issuedBy, status, remarks, filename, fields }) {
   const info = db
     .prepare(
       `INSERT INTO documents
-         (customer_id, doc_type, doc_no, issue_date, valid_till, issued_by, status, remarks, filename)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+         (customer_id, doc_type, doc_no, issue_date, valid_till, issued_by, status, remarks, filename, fields_json)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .run(
       customerId,
@@ -150,7 +156,8 @@ export function addDocument({ customerId, docType, docNo, issueDate, validTill, 
       issuedBy || '',
       status || 'Submitted',
       remarks || '',
-      filename || 'document'
+      filename || 'document',
+      Array.isArray(fields) ? JSON.stringify(fields) : ''
     );
   return Number(info.lastInsertRowid);
 }

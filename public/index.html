@@ -348,6 +348,26 @@
     </div>
   </div>
 
+  <!-- ============ DOCUMENT DETAIL MODAL ============ -->
+  <div class="modal" id="docModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2><span id="docModalType">Document</span> <span class="status-badge" id="docModalStatus"></span></h2>
+        <button class="modal-close" id="docModalClose" title="Band karo">✕</button>
+      </div>
+      <p class="hint" style="margin-top:2px">Document pe click karke saari details dekh sakte ho.</p>
+
+      <div class="dd-sec">Document Details</div>
+      <div class="dd-grid" id="docModalDoc"></div>
+
+      <div class="dd-sec">Customer Details</div>
+      <div class="dd-grid" id="docModalCust"></div>
+
+      <div class="dd-sec" id="docModalExtractedWrap" hidden>Extracted Fields</div>
+      <div class="dd-grid" id="docModalExtracted"></div>
+    </div>
+  </div>
+
   <div id="toast" class="toast" role="status"></div>
 
   <script type="module" src="app.js"></script>
