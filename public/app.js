@@ -3,7 +3,6 @@
 
 const $ = (sel) => document.querySelector(sel);
 
-const STATUSES = ['Submitted', 'Pending', 'Approved', 'Rejected', 'Issued'];
 
 const state = {
   preview: null, // { filename, customerName, docType, fields, text }
@@ -248,9 +247,6 @@ function renderPreview() {
     $('#customTypeBox').hidden = dtSel.value !== '__other__';
   };
 
-  // status dropdown
-  const stSel = $('#statusSelect');
-  stSel.innerHTML = STATUSES.map((s) => `<option value="${s}"${s === 'Submitted' ? ' selected' : ''}>${s}</option>`).join('');
 
   $('#remarksInput').value = '';
   renderFieldsEditor();
@@ -313,7 +309,7 @@ function buildPayload() {
   }
   const document = {
     type,
-    status: $('#statusSelect').value,
+    status: 'Submitted',
     remarks: $('#remarksInput').value.trim(),
   };
   const extra = [];
