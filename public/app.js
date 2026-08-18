@@ -1082,21 +1082,55 @@ const RESUME_TEMPLATES = [
 const TEMPLATE_FILTERS = ['All templates', 'Simple', 'Professional', 'Two-column', 'Modern', 'Elegant', 'Creative'];
 let selectedTemplate = RESUME_TEMPLATES[2]; // default: Modern Blue
 
+function mockPhoto() {
+  return `<div class="mock-photo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>`;
+}
+
 function miniPreview(t) {
-  const inner =
-    `<div class="mini-head"><div class="mini-name">Ramesh Kumar</div><div class="mini-title">Accountant</div></div>
+  const SIDE_TYPES = ['sidebar', 'split', 'student', 'classic'];
+  if (SIDE_TYPES.includes(t.layout)) {
+    return `<div class="tpl-mini side" style="--accent:${t.accent}">
+      <div class="mini-side" style="background:${t.accent}">
+        ${mockPhoto()}
+        <div class="mini-s-name">Ramesh Kumar</div>
+        <div class="mini-s-line"></div>
+        <div class="mini-s-line"></div>
+        <div class="mini-s-line d"></div>
+      </div>
+      <div class="mini-body">
+        <div class="mini-sec">Profile</div>
+        <div class="mini-line"></div>
+        <div class="mini-line d"></div>
+        <div class="mini-sec">Experience</div>
+        <div class="mini-line"></div>
+        <div class="mini-line d"></div>
+      </div>
+    </div>`;
+  }
+  if (t.layout === 'band') {
+    return `<div class="tpl-mini band" style="--accent:${t.accent}">
+      <div class="mini-band" style="background:${t.accent}">${mockPhoto()}<div class="mini-band-name">Ramesh Kumar</div></div>
+      <div class="mini-body">
+        <div class="mini-sec">Profile</div>
+        <div class="mini-line"></div>
+        <div class="mini-line d"></div>
+        <div class="mini-sec">Skills</div>
+        <div class="mini-chiprow"><span class="mini-chip"></span><span class="mini-chip"></span><span class="mini-chip"></span></div>
+      </div>
+    </div>`;
+  }
+  return `<div class="tpl-mini" style="--accent:${t.accent}">
+    <div class="mini-top">
+      <div class="mini-head"><div class="mini-name">Ramesh Kumar</div><div class="mini-title">Accountant</div></div>
+      ${mockPhoto()}
+    </div>
     <div class="mini-bar" style="background:${t.accent}"></div>
     <div class="mini-sec" style="color:${t.accent}">Profile</div>
     <div class="mini-line"></div>
     <div class="mini-line d"></div>
-    <div class="mini-sec" style="color:${t.accent}">Experience</div>
-    <div class="mini-line"></div>
-    <div class="mini-line"></div>
-    <div class="mini-line d"></div>`;
-  if (t.layout === 'sidebar') {
-    return `<div class="tpl-mini side" style="--accent:${t.accent}"><div class="mini-side" style="background:${t.accent}"></div><div class="mini-body">${inner}</div></div>`;
-  }
-  return `<div class="tpl-mini" style="--accent:${t.accent}"><div class="mini-body">${inner}</div></div>`;
+    <div class="mini-sec" style="color:${t.accent}">Skills</div>
+    <div class="mini-chiprow"><span class="mini-chip"></span><span class="mini-chip"></span><span class="mini-chip"></span></div>
+  </div>`;
 }
 
 function renderTemplates(filter) {
@@ -1149,6 +1183,49 @@ function selectTemplate(t) {
   $('#resumeStartModal').hidden = false;
 }
 
+function custMock(t) {
+  const SIDE_TYPES = ['sidebar', 'split', 'student', 'classic'];
+  if (SIDE_TYPES.includes(t.layout)) {
+    return `<div class="cust-thumb side2">
+      <div class="cust-side2" style="background:${t.accent}">
+        ${mockPhoto()}
+        <div class="cust-s-name">Ramesh Kumar</div>
+        <div class="cust-s-line"></div>
+        <div class="cust-s-line"></div>
+        <div class="cust-s-line d"></div>
+      </div>
+      <div class="cust-body">
+        <div class="cust-sec" style="color:${t.accent}">Profile</div>
+        <div class="cust-row"></div><div class="cust-row d"></div>
+        <div class="cust-sec" style="color:${t.accent}">Experience</div>
+        <div class="cust-row"></div><div class="cust-row d"></div>
+      </div>
+    </div>`;
+  }
+  if (t.layout === 'band') {
+    return `<div class="cust-thumb band2">
+      <div class="cust-band" style="background:${t.accent}">${mockPhoto()}<div class="cust-band-name">Ramesh Kumar</div></div>
+      <div class="cust-body">
+        <div class="cust-sec" style="color:${t.accent}">Profile</div>
+        <div class="cust-row"></div><div class="cust-row d"></div>
+        <div class="cust-sec" style="color:${t.accent}">Skills</div>
+        <div class="cust-chip">Tally</div><div class="cust-chip">Excel</div><div class="cust-chip">GST</div>
+      </div>
+    </div>`;
+  }
+  return `<div class="cust-thumb">
+    <div class="cust-top">
+      <div><div class="cust-name" style="color:${t.accent}">Ramesh Kumar</div><div class="cust-title">Accountant</div></div>
+      ${mockPhoto()}
+    </div>
+    <div class="cust-line" style="background:${t.accent}"></div>
+    <div class="cust-sec" style="color:${t.accent}">Profile</div>
+    <div class="cust-row"></div><div class="cust-row d"></div>
+    <div class="cust-sec" style="color:${t.accent}">Skills</div>
+    <div class="cust-chip">Tally</div><div class="cust-chip">Excel</div><div class="cust-chip">GST</div>
+  </div>`;
+}
+
 // ---- customize panel (Edit | Customize tabs — resume.io jaisa) ----
 
 function renderCustomizeGrid() {
@@ -1157,18 +1234,7 @@ function renderCustomizeGrid() {
   renderFontRow();
   grid.innerHTML = RESUME_TEMPLATES.map((t) => {
     const sel = selectedTemplate.id === t.id ? ' selected' : '';
-    const inner =
-      `<div class="cust-name" style="color:${t.accent}">Ramesh Kumar</div>
-      <div class="cust-title">Accountant</div>
-      <div class="cust-line" style="background:${t.accent}"></div>
-      <div class="cust-sec" style="color:${t.accent}">Profile</div>
-      <div class="cust-row"></div><div class="cust-row d"></div>
-      <div class="cust-sec" style="color:${t.accent}">Skills</div>
-      <div class="cust-chip">Tally</div><div class="cust-chip">Excel</div><div class="cust-chip">GST</div>`;
-    const thumb = t.layout === 'sidebar'
-      ? `<div class="cust-thumb side"><div class="cust-side" style="background:${t.accent}"></div><div class="cust-body">${inner}</div></div>`
-      : `<div class="cust-thumb">${inner}</div>`;
-    return `<div class="cust-card${sel}" data-id="${t.id}" title="${esc(t.name)}">${thumb}<div class="cust-foot"><span class="tpl-name">${esc(t.name)}</span><span class="tpl-cat">${esc(t.cat)}</span></div></div>`;
+    return `<div class="cust-card${sel}" data-id="${t.id}" title="${esc(t.name)}">${custMock(t)}<div class="cust-foot"><span class="tpl-name">${esc(t.name)}</span><span class="tpl-cat">${esc(t.cat)}</span></div></div>`;
   }).join('');
   grid.querySelectorAll('.cust-card').forEach((card) => {
     card.addEventListener('click', () => {

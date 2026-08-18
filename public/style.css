@@ -1426,3 +1426,43 @@ body {
   box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.18);
 }
 .font-pill.active span { color: var(--accent, #4f46e5); }
+
+/* ---------------- live mockups with photo in template cards ---------------- */
+.mock-photo {
+  width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(145deg, #c7d2fe, #a5b4fc);
+  border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  display: grid; place-items: center; color: #fff;
+}
+.mock-photo svg { width: 16px; height: 16px; }
+.tpl-mini.side .mini-side {
+  width: 42%; padding: 10px 8px; display: flex; flex-direction: column; align-items: center; gap: 5px;
+}
+.tpl-mini.side .mini-side .mock-photo { width: 26px; height: 26px; border-color: rgba(255, 255, 255, 0.6); margin-bottom: 3px; }
+.tpl-mini.side .mini-side .mock-photo svg { width: 14px; height: 14px; }
+.mini-s-name { font-size: 9px; font-weight: 800; color: #fff; text-align: center; }
+.mini-s-line { height: 3px; width: 82%; border-radius: 2px; background: rgba(255, 255, 255, 0.4); }
+.mini-s-line.d { width: 60%; background: rgba(255, 255, 255, 0.28); }
+.tpl-mini.band { padding: 0; overflow: hidden; }
+.mini-band { display: flex; align-items: center; gap: 7px; padding: 8px 10px; }
+.mini-band .mock-photo { width: 24px; height: 24px; border-color: rgba(255, 255, 255, 0.65); }
+.mini-band .mock-photo svg { width: 13px; height: 13px; }
+.mini-band-name { font-size: 10px; font-weight: 800; color: #fff; }
+.mini-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+.mini-chiprow { display: flex; gap: 4px; margin-top: 2px; }
+.mini-chip { height: 6px; width: 22%; border-radius: 999px; background: var(--accent, #2563eb); opacity: 0.75; }
+
+/* customize grid mockups */
+.cust-thumb.side2 { display: flex; padding: 0; min-height: 128px; }
+.cust-side2 { width: 36%; flex-shrink: 0; padding: 12px 8px; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+.cust-side2 .mock-photo { width: 34px; height: 34px; border-color: rgba(255, 255, 255, 0.65); }
+.cust-side2 .mock-photo svg { width: 18px; height: 18px; }
+.cust-s-name { font-size: 11px; font-weight: 800; color: #fff; text-align: center; }
+.cust-s-line { height: 4px; width: 84%; border-radius: 2px; background: rgba(255, 255, 255, 0.4); }
+.cust-s-line.d { width: 60%; background: rgba(255, 255, 255, 0.28); }
+.cust-thumb.band2 { padding: 0; overflow: hidden; }
+.cust-band { display: flex; align-items: center; gap: 10px; padding: 10px 12px; }
+.cust-band .mock-photo { width: 30px; height: 30px; border-color: rgba(255, 255, 255, 0.65); }
+.cust-band .mock-photo svg { width: 16px; height: 16px; }
+.cust-band-name { font-size: 12.5px; font-weight: 800; color: #fff; }
+.cust-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
