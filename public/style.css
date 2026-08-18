@@ -675,3 +675,14 @@ body {
   transform: scale(1.12);
   box-shadow: 0 0 0 2px rgba(79, 140, 255, .3);
 }
+
+/* ---------------- footer ---------------- */
+.footer {
+  text-align: center;
+  padding: 14px 16px;
+  color: #8a94a6;
+  font-size: 14px;
+  border-top: 1px solid #eef1f6;
+  background: #fafbfd;
+  margin-top: 24px;
+}
