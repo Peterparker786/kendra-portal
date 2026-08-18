@@ -47,17 +47,30 @@ export async function makePassportSheet(buffer, opts = {}) {
   const ar = w / h; // target aspect
   const face = await detectFace(working);
   let cw, ch, left, top;
-  if (face && face.w > 0) {
-    // ---- face-aware crop: face ko passport composition me rakhna ----
-    // face height ~55% of crop, headroom ~9% (head kabhi na kate)
+  if (face && face.w > 0 && face.h > 0) {
+    // ---- face-aware crop ----
+    // pico ka box eyes-to-chin hota hai — hair/forehead ke liye upar expand karo,
+    // warna head ka top crop ke bahar chala jata hai (yehi pehle ho raha tha).
+    const headTop = face.y - face.h * 0.28;
+    const headBot = face.y + face.h * 1.05;
+    const headH = headBot - headTop;
+    const headCx = face.x + face.w / 2;
+
+    // composition: (expanded) head height ~55% of crop, head ke upar 12% headroom
     const FACE_RATIO = 0.55;
-    const HEADROOM = 0.09;
-    let fc = face.h / FACE_RATIO;
+    const HEADROOM = 0.12;
+
+    let fc = headH / FACE_RATIO;
     let fw = fc * ar;
+    // zoom cap: crop ko itna chhota mat karo ki blur aaye ya head kate
+    const minCh = Math.max(0.45 * meta.height, (0.5 * meta.width) / ar);
+    if (fc < minCh) fc = minCh;
+    if (fc > meta.height) fc = meta.height;
+    fw = fc * ar;
     if (fw > meta.width) { fw = meta.width; fc = fw / ar; }
-    if (fc > meta.height) { fc = meta.height; fw = fc * ar; }
-    let l = face.x + face.w / 2 - fw / 2; // horizontally face pe center
-    let t = face.y - HEADROOM * fc;        // head ke upar thodi jagah
+
+    let l = headCx - fw / 2;  // horizontally head pe center
+    let t = headTop - HEADROOM * fc; // head ke upar thodi jagah
     if (l < 0) l = 0;
     if (l + fw > meta.width) l = meta.width - fw;
     if (t < 0) t = 0;
@@ -65,7 +78,7 @@ export async function makePassportSheet(buffer, opts = {}) {
     cw = Math.round(fw); ch = Math.round(fc);
     left = Math.round(l); top = Math.round(t);
   } else {
-    // ---- fallback: center crop (face nahi mila) ----
+    // ---- fallback: face nahi mila — upar-biased crop (face upar hota hai) ----
     const imgAr = meta.width / meta.height;
     if (imgAr > ar) {
       ch = meta.height;
@@ -75,7 +88,7 @@ export async function makePassportSheet(buffer, opts = {}) {
       ch = Math.round(meta.width / ar);
     }
     left = Math.round((meta.width - cw) / 2);
-    top = Math.round((meta.height - ch) / 2);
+    top = Math.round((meta.height - ch) * 0.35); // center nahi, thoda upar
   }
   const photo = await sharp(working)
     .extract({ left, top, width: cw, height: ch })
