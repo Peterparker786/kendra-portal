@@ -125,7 +125,9 @@ function extractFields(lines) {
     { key: 'Aadhaar No', names: ['aadhaar number', 'aadhaar no', 'aadhar number', 'aadhar no', 'uidai no'] },
     { key: 'Address', names: ['address'] },
     { key: 'Phone / Email', names: ['phone', 'mobile', 'contact', 'email'] },
-    { key: 'Issued By', names: ['issued by', 'issuing authority', 'issued from'] },
+    { key: 'University Reg No', names: ['university reg no', 'university registration no', 'enrollment no', 'enrolment no', 'enroll no'] },
+    { key: 'Result', names: ['result'] },
+    { key: 'Issued By', names: ['issued by', 'issuing authority', 'issued from', 'university'] },
   ];
 
   for (let i = 0; i < lines.length; i++) {
@@ -194,6 +196,39 @@ function extractFields(lines) {
     }
   }
 
+  // Roll / Enrollment number (marksheet)
+  if (!seen['Document No']) {
+    for (const l of lines) {
+      const m = l.match(/(?:roll|enrol|enroll)\s*(?:no|number|#)\s*:?\s*([A-Za-z0-9][A-Za-z0-9/._-]{2,20})/i);
+      if (m) {
+        add('Document No', m[1]);
+        break;
+      }
+    }
+  }
+
+  // University enrollment / registration number (student profile ke liye)
+  if (!seen['University Reg No']) {
+    for (const l of lines) {
+      const m = l.match(/(?:enrol|enroll|university\s*reg)\s*(?:ment)?\s*(?:no|number|#)\s*:?\s*([A-Za-z0-9][A-Za-z0-9/._-]{2,20})/i);
+      if (m) {
+        add('University Reg No', m[1]);
+        break;
+      }
+    }
+  }
+
+  // Result (marksheet): pass / fail / division
+  if (!seen['Result']) {
+    for (const l of lines) {
+      const m = l.match(/result\s*:?\s*([A-Za-z/ ]{2,20})/i);
+      if (m && !/result/i.test(m[1])) {
+        add('Result', m[1].trim());
+        break;
+      }
+    }
+  }
+
   // Issue date
   if (!seen['Issue Date']) {
     for (const l of lines) {
@@ -226,13 +261,14 @@ function detectDocType(text) {
     [/domicile/i, 'Domicile Certificate'],
     [/aadhaar|aadhar|uidai/i, 'Aadhaar Card'],
     [/pan\b|permanent account/i, 'PAN Card'],
+    [/marksheet|marks|semester|roll\s*no/i, 'Marksheet (BSc / BA / 12th)'],
     [/cast|jati/i, 'Cast Certificate'],
     [/income|aay\b/i, 'Income Certificate'],
-    [/birth|janm/i, 'Birth Certificate'],
-    [/death|mrityu/i, 'Death Certificate'],
-    [/marriage|shadi|vivaah/i, 'Marriage Registration'],
+    [/birth\s*(certificate|registration|record|report)|janm\s*praman/i, 'Birth Certificate'],
+    [/death\s*(certificate|registration|record|report)|mrityu\s*praman/i, 'Death Certificate'],
+    [/marriage\s*(registration|certificate|panjikaran)|shadi\s*praman|vivaah/i, 'Marriage Registration'],
     [/voter|matdata/i, 'Voter ID'],
-    [/ration|food\s*security/i, 'Ration Card'],
+    [/\bration\b|food\s*security|pds\b/i, 'Ration Card'],
     [/scholarship|chhatravritti/i, 'Scholarship Documents'],
     [/student|university|enroll/i, 'Student / University Registration'],
   ];
@@ -253,6 +289,9 @@ const AI_KEY_MAP = {
   phone: 'Phone / Email',
   docNo: 'Document No',
   panNo: 'Document No',
+  rollNo: 'Document No',
+  universityRegNo: 'University Reg No',
+  result: 'Result',
   issueDate: 'Issue Date',
   validTill: 'Valid Till',
   issuedBy: 'Issued By',

@@ -139,6 +139,7 @@ const DOC_TYPES = [
   'Voter ID',
   'Ration Card',
   'Student / University Registration',
+  'Marksheet (BSc / BA / 12th)',
   'Scholarship Documents',
   'Other',
 ];
