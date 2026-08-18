@@ -713,7 +713,8 @@ function selectTemplate(t) {
   selectedTemplate = t;
   $('#tplSelectedBadge').textContent = `Template: ${t.name}`;
   $('#tplSelectedBadge').style.color = t.accent;
-  showResumeForm();
+  // template chuna -> "How do you want to start?" (naya ya purana upload)
+  $('#resumeStartModal').hidden = false;
 }
 
 function openTemplatePage() {
@@ -758,7 +759,7 @@ function wireResume() {
     $('#resumeHero').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('#rsUploadBtn').addEventListener('click', () => $('#rsUploadInput').click());
-  $('#rsUploadInput').addEventListener('change', (e) => {
+  $('#rsUploadInput').addEventListener('change', async (e) => {
     const file = e.target.files[0];
     e.target.value = '';
     if (!file) return;
@@ -767,28 +768,49 @@ function wireResume() {
     const st = $('#resumeStatus');
     st.hidden = false;
     st.textContent = 'Resume padh raha hai… (scanned ho to thoda time)';
-    fetch('/api/resume/upload', { method: 'POST', body: fd })
-      .then(async (res) => {
-        const d = await res.json();
-        if (!res.ok) throw new Error(d.error || 'Upload fail');
-        return d;
-      })
-      .then((d) => {
-        $('#resumeFormWrap').hidden = false;
-        const exp = $('#rsExperience');
-        if (d.text && d.text.trim()) {
-          exp.value = d.text.trim();
-          const first = d.text.trim().split('\n')[0].trim();
-          if (first && !$('#rsName').value) $('#rsName').value = first;
-        }
-        st.textContent = '✅ Resume se text nikal aaya — ab "AI se Resume banao" dabao, AI usse polish karega.';
-        $('#resumeFormWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        toast('Resume upload ho gaya!');
-      })
-      .catch((err) => {
-        st.textContent = 'Error: ' + err.message;
-        toast(err.message, 'err');
-      });
+    try {
+      const up = await fetch('/api/resume/upload', { method: 'POST', body: fd }).then((r) => r.json());
+      if (!up.ok && !up.text) throw new Error(up.error || 'Upload fail');
+      const text = up.text || '';
+      if (!text.trim()) throw new Error('Resume se text nahi nikla');
+      st.textContent = 'Info nikal raha hai (AI)… 10-20 sec';
+      const parsed = await fetch('/api/resume/parse', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      }).then((r) => r.json());
+      const f = (parsed && parsed.fields) || {};
+      $('#rsName').value = f.name || '';
+      $('#rsPhone').value = f.phone || '';
+      $('#rsEmail').value = f.email || '';
+      $('#rsAddress').value = f.address || '';
+      $('#rsDob').value = f.dob || '';
+      $('#rsFather').value = f.father || '';
+      $('#rsObjective').value = f.objective || '';
+      $('#rsEducation').value = f.education || '';
+      $('#rsSkills').value = f.skills || '';
+      $('#rsExperience').value = f.experience || text;
+      showResumeForm();
+      st.textContent = '✅ Purane resume ki info naye template me bhar di — update karke "AI se Resume banao" dabao, phir download karo.';
+      toast('Purane resume se info bhar di!');
+    } catch (err) {
+      st.textContent = 'Error: ' + err.message;
+      toast(err.message, 'err');
+    }
+  });
+  $('#startCreate').addEventListener('click', () => {
+    $('#resumeStartModal').hidden = true;
+    showResumeForm();
+  });
+  $('#startUpload').addEventListener('click', () => {
+    $('#resumeStartModal').hidden = true;
+    $('#rsUploadInput').click();
+  });
+  $('#resumeStartClose').addEventListener('click', () => {
+    $('#resumeStartModal').hidden = true;
+  });
+  $('#resumeStartModal').addEventListener('click', (e) => {
+    if (e.target === $('#resumeStartModal')) $('#resumeStartModal').hidden = true;
   });
   $('#resumeMakeBtn').addEventListener('click', buildResume);
   $('#resumeDownloadBtn').addEventListener('click', downloadResume);

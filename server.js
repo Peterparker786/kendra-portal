@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument, extractRawText } from './extract.js';
-import { aiBuildResume } from './ai.js';
+import { aiBuildResume, aiParseResume } from './ai.js';
 import { resizeDocument } from './resize.js';
 import { makePassportSheet } from './passport.js';
 import * as store from './db.js';
@@ -157,6 +157,17 @@ app.post('/api/resume', async (req, res, next) => {
     const d = req.body || {};
     const md = await aiBuildResume(d);
     res.json(md ? { ok: true, markdown: md, usedAI: true } : { ok: true, markdown: resumeTemplate(d), usedAI: false });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// resume raw text -> structured fields (purane resume se form prefill)
+app.post('/api/resume/parse', async (req, res, next) => {
+  try {
+    const text = String((req.body || {}).text || '');
+    const fields = await aiParseResume(text);
+    res.json({ ok: true, fields: fields || {} });
   } catch (err) {
     next(err);
   }

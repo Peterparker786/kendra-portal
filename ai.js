@@ -184,6 +184,45 @@ export async function aiBuildResume(details) {
   return aiText(prompt);
 }
 
+const PARSE_PROMPT = [
+  'You are a resume parser. Extract structured information from the resume text below.',
+  'Return ONLY valid JSON with this exact structure (empty string if not found):',
+  '{',
+  '  "name": "", "phone": "", "email": "", "address": "", "dob": "", "father": "",',
+  '  "objective": "", "education": "", "skills": "", "experience": ""',
+  '}',
+  'Rules:',
+  '- education: one entry per line as "Degree, Institution, Year".',
+  '- skills: comma-separated list.',
+  '- experience: original job entries, one per line (job title, company, dates).',
+  '- objective: the summary/objective paragraph, one line.',
+  '- Do NOT invent anything. Output nothing except the JSON object.',
+  '',
+  'Resume text:',
+  '{TEXT}',
+].join('\n');
+
+/** Purane resume ka raw text -> structured fields (form prefill ke liye) */
+export async function aiParseResume(text) {
+  const prompt = PARSE_PROMPT.replace('{TEXT}', String(text || '').slice(0, 8000));
+  const raw = await aiText(prompt);
+  if (!raw) return null;
+  const parsed = parseJson(raw);
+  if (!parsed) return null;
+  return {
+    name: String(parsed.name || '').trim(),
+    phone: String(parsed.phone || '').trim(),
+    email: String(parsed.email || '').trim(),
+    address: String(parsed.address || '').trim(),
+    dob: String(parsed.dob || '').trim(),
+    father: String(parsed.father || '').trim(),
+    objective: String(parsed.objective || '').trim(),
+    education: String(parsed.education || '').trim(),
+    skills: String(parsed.skills || '').trim(),
+    experience: String(parsed.experience || '').trim(),
+  };
+}
+
 /** Image/PDF buffer -> parsed JSON { text, docType, fields } | null (agar key nahi / fail) */
 export async function aiExtract(buffer, filename) {
   // 1) Google Gemini (agar AIza key hai)
