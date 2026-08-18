@@ -1276,3 +1276,95 @@ body {
 .resume-preview.tpl-executive .lp-name { letter-spacing: 2px; }
 .resume-preview.tpl-creative .lp-banner { background: linear-gradient(135deg, var(--accent), #f472b6) !important; }
 .resume-preview.tpl-gold .lp-banner { background: linear-gradient(135deg, #a16207, #d97706) !important; }
+
+/* ---------------- premium (trending) templates — photo + sidebar ---------------- */
+.resume-preview { overflow: hidden; }
+
+/* photo circle */
+.lp2-photo-wrap { text-align: center; padding: 22px 0 6px; }
+.lp2-photo-wrap.band { padding: 18px 0 0; flex-shrink: 0; }
+.lp2-photo {
+  width: 92px; height: 92px; border-radius: 50%; margin: 0 auto;
+  background: rgba(255, 255, 255, 0.16) url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>') center/44px no-repeat;
+  background-size: cover, 44px;
+  border: 3px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  display: grid; place-items: center;
+}
+.lp2-photo span { display: none; }
+
+/* split / classic / student layout */
+.lp2 { display: flex; min-height: 420px; }
+.lp2-side {
+  width: 33%; flex-shrink: 0; color: #fff; padding: 20px 18px 24px;
+}
+.lp2-side .lp2-sec h3 {
+  color: #fff; font-size: 12px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 1.2px; border-bottom: 1px solid rgba(255, 255, 255, 0.4);
+  padding-bottom: 5px; margin: 16px 0 8px;
+}
+.lp2-side .lp2-sec-body { font-size: 12.5px; line-height: 1.6; opacity: 0.95; }
+.lp2-side .lp2-line { padding: 1px 0; }
+.lp2-side .lp2-chip {
+  display: inline-block; font-size: 11.5px; font-weight: 600; margin: 2px 4px 2px 0;
+  background: rgba(255, 255, 255, 0.18); border-radius: 999px; padding: 3px 10px;
+}
+.lp2-main { flex: 1; min-width: 0; padding: 24px 26px 26px; }
+.lp2-head { margin-bottom: 16px; }
+.lp2-name { font-size: 24px; font-weight: 800; letter-spacing: 0.5px; color: #111827; }
+.lp2-title { font-size: 13px; font-weight: 600; color: var(--accent, #4f46e5); text-transform: uppercase; letter-spacing: 1.4px; margin-top: 2px; }
+.lp2-main .lp2-sec { margin-bottom: 14px; }
+.lp2-main .lp2-sec h2 {
+  font-size: 13.5px; font-weight: 800; color: var(--accent, #4f46e5);
+  text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px;
+  border-bottom: 2px solid var(--accent, #4f46e5); padding-bottom: 4px;
+}
+.lp2-sec-body p { margin: 4px 0; font-size: 13px; line-height: 1.55; color: #334155; }
+.lp2-line { font-size: 13px; line-height: 1.5; color: #334155; padding: 2px 0; }
+.lp2-chip {
+  display: inline-block; font-size: 11.5px; font-weight: 600; margin: 2px 4px 2px 0;
+  color: var(--accent, #4f46e5); background: #eef2ff; border: 1px solid #c7d2fe;
+  border-radius: 999px; padding: 3px 10px;
+}
+.lp2-stu-name { text-align: center; font-size: 19px; font-weight: 800; letter-spacing: 0.6px; margin: 10px 0 2px; }
+
+/* band header layout */
+.lp-band-top { display: flex; align-items: center; gap: 20px; padding: 22px 26px; color: #fff; }
+.lp-band-name { font-size: 26px; font-weight: 800; line-height: 1.15; }
+.lp-band-name span { display: block; font-size: 12.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 2px; opacity: 0.92; margin-top: 4px; }
+.lp-band-cols { display: flex; }
+.lp-band-left { width: 34%; flex-shrink: 0; background: #f8fafc; border-right: 1px solid #e2e8f0; padding: 18px; }
+.lp-band-left .lp2-sec h3 {
+  font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1.2px;
+  color: var(--accent, #0d9488); border-bottom: 2px solid var(--accent, #0d9488); padding-bottom: 5px; margin: 14px 0 8px;
+}
+.lp-band-left .lp2-chip {
+  display: inline-block; font-size: 11.5px; font-weight: 600; margin: 2px 4px 2px 0;
+  color: var(--accent, #0d9488); background: #e6fffb; border: 1px solid #99f6e4; border-radius: 999px; padding: 3px 10px;
+}
+.lp-band-left .lp2-line { color: #334155; }
+.lp-band-right { flex: 1; min-width: 0; padding: 20px 24px; }
+.lp-band-right .lp2-sec { margin-bottom: 14px; }
+.lp-band-right .lp2-sec h2 {
+  font-size: 13.5px; font-weight: 800; color: var(--accent, #0d9488);
+  text-transform: uppercase; letter-spacing: 1px; margin: 0 0 6px;
+  border-bottom: 2px solid var(--accent, #0d9488); padding-bottom: 4px;
+}
+
+/* classic serif variant */
+.lp2.classic .lp2-main { font-family: Georgia, 'Times New Roman', serif; }
+.lp2.classic .lp2-main .lp2-sec h2, .lp2.classic .lp2-name, .lp2.classic .lp2-title { font-family: Georgia, 'Times New Roman', serif; }
+
+/* photo upload box (form) */
+.rs-photo-row { display: flex; gap: 12px; align-items: center; margin: 10px 0 12px; }
+.rs-photo-box {
+  width: 64px; height: 64px; border-radius: 12px; border: 2px dashed #c7d2fe;
+  background: #f5f7ff center/cover no-repeat;
+  display: grid; place-items: center; font-size: 22px; color: #818cf8;
+  flex-shrink: 0; overflow: hidden;
+}
+.rs-photo-box.has-photo { border: 2px solid #4f46e5; }
+.rs-photo-box small { font-size: 10px; color: #a5b4fc; display: block; text-align: center; }
+.rs-photo-box.has-photo small { display: none; }
+.rs-photo-actions { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
+.rs-photo-actions .hint { margin: 0; }

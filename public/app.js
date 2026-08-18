@@ -488,6 +488,7 @@ function renderDonut(byType, total) {
 // ---------------------------------------------------------------- resume maker
 
 let resumeMarkdown = '';
+let resumePhoto = ''; // optional photo (dataURL) — premium templates me dikhti hai
 
 // ---- live resume preview (har keystroke pe update) ----
 
@@ -514,6 +515,10 @@ function liveResumePreview() {
   const pv = document.getElementById('resumePreview');
   if (!pv) return;
   const t = selectedTemplate;
+  if (['split', 'band', 'student', 'classic'].includes(t.layout)) {
+    renderPremium(t);
+    return;
+  }
   const g = (id) => document.getElementById(id).value.trim();
   const name = g('rsName') || 'Customer Name';
   const title = g('rsTitle');
@@ -563,6 +568,76 @@ function liveResumePreview() {
   } else {
     pv.innerHTML = inner;
   }
+  updateResumeScore();
+}
+
+// ---- premium (trending) templates — photo + colored sidebar + structured sections ----
+
+function renderPremium(t) {
+  const pv = document.getElementById('resumePreview');
+  if (!pv) return;
+  const g = (id) => document.getElementById(id).value.trim();
+  const name = g('rsName') || 'Customer Name';
+  const title = g('rsTitle');
+  const email = g('rsEmail');
+  const phone = g('rsPhone');
+  const addr = g('rsAddress');
+  const objective = g('rsObjective');
+  const education = g('rsEducation');
+  const skills = g('rsSkills');
+  const experience = g('rsExperience');
+
+  const photo = resumePhoto
+    ? `style="background-image:url('${resumePhoto}')"`
+    : '';
+  const photoCircle = `<div class="lp2-photo-wrap"><div class="lp2-photo" ${photo}><span>👤</span></div></div>`;
+  const lines = (txt) => txt.split('\n').filter((l) => l.trim()).map((l) => `<div class="lp2-line">${esc(l.trim())}</div>`).join('');
+  const chips = skills ? skills.split(',').filter((s) => s.trim()).map((s) => `<span class="lp2-chip">${esc(s.trim())}</span>`).join('') : '';
+  const contactLines = [email && `✉ ${esc(email)}`, phone && `✆ ${esc(phone)}`, addr && `📍 ${esc(addr)}`].filter(Boolean).join('\n');
+  const whiteSec = (h, body) => (body ? `<div class="lp2-sec"><h3>${esc(h)}</h3><div class="lp2-sec-body">${body}</div></div>` : '');
+  const mainSec = (h, body) => (body ? `<div class="lp2-sec"><h2>${esc(h)}</h2><div class="lp2-sec-body">${body}</div></div>` : '');
+
+  pv.className = `resume-preview tpl-${t.id}`;
+
+  if (t.layout === 'band') {
+    const band = `<div class="lp-band-top" style="background:${t.accent}">
+        <div class="lp2-photo-wrap band"><div class="lp2-photo" ${photo}><span>👤</span></div></div>
+        <div class="lp-band-name">${esc(name)}${title ? `<span>${esc(title)}</span>` : ''}</div>
+      </div>`;
+    pv.innerHTML = `<div class="lp-band">${band}<div class="lp-band-cols">
+        <div class="lp-band-left">${whiteSec('Contact', lines(contactLines))}${whiteSec('Skills', chips)}${whiteSec('Education', lines(education))}</div>
+        <div class="lp-band-right">${mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '')}${mainSec('Experience', lines(experience))}${mainSec('Education', lines(education))}</div>
+      </div></div>`;
+    updateResumeScore();
+    return;
+  }
+
+  if (t.layout === 'student') {
+    pv.innerHTML = `<div class="lp2">
+      <div class="lp2-side" style="background:${t.accent}">
+        ${photoCircle}
+        <div class="lp2-stu-name">${esc(name)}</div>
+        ${whiteSec('Contact', lines(contactLines))}
+      </div>
+      <div class="lp2-main">
+        ${mainSec('🎓 Education', lines(education))}
+        ${mainSec('🏆 Achievements', objective ? `<p>${esc(objective)}</p>` : '')}
+        ${mainSec('🛠 Soft Skills', chips)}
+        ${mainSec('💼 Experience', lines(experience))}
+      </div>
+    </div>`;
+    updateResumeScore();
+    return;
+  }
+
+  // split / classic — sidebar + main
+  const sideBody = whiteSec('Contact', lines(contactLines)) + whiteSec('Skills', chips) + whiteSec('Education', lines(education));
+  const mainHead = `<div class="lp2-head"><div class="lp2-name">${esc(name)}</div>${title ? `<div class="lp2-title">${esc(title)}</div>` : ''}</div>`;
+  const mainBody = mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '') + mainSec('Experience', lines(experience)) + mainSec('Education', lines(education));
+  pv.innerHTML = `<div class="lp2${t.layout === 'classic' ? ' classic' : ''}">
+      <div class="lp2-side" style="background:${t.accent}">${t.layout === 'split' ? photoCircle : ''}${sideBody}</div>
+      <div class="lp2-main">${mainHead}${mainBody}</div>
+    </div>`;
   updateResumeScore();
 }
 
@@ -653,7 +728,7 @@ async function downloadResume() {
     const res = await fetch('/api/resume/pdf', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ markdown: resumeMarkdown, accent: selectedTemplate.accent }),
+      body: JSON.stringify({ markdown: resumeMarkdown, accent: selectedTemplate.accent, template: selectedTemplate.id, photo: resumePhoto || '' }),
     });
     if (!res.ok) {
       const e = await res.json().catch(() => ({}));
@@ -765,6 +840,12 @@ const RESUME_TEMPLATES = [
   { id: 'creative', name: 'Creative', cat: 'Modern', accent: '#db2777', layout: 'gradient' },
   { id: 'clean', name: 'Clean', cat: 'Simple', accent: '#334155', layout: 'minimal' },
   { id: 'gold', name: 'Gold Classic', cat: 'Elegant', accent: '#a16207', layout: 'serif' },
+  { id: 'split-navy', name: 'Executive Split', cat: 'Two-column', accent: '#0f172a', layout: 'split' },
+  { id: 'split-teal', name: 'Teal Split', cat: 'Two-column', accent: '#0f766e', layout: 'split' },
+  { id: 'band-teal', name: 'Band Header', cat: 'Modern', accent: '#0d9488', layout: 'band' },
+  { id: 'band-rose', name: 'Rose Band', cat: 'Modern', accent: '#be123c', layout: 'band' },
+  { id: 'student', name: 'Student Card', cat: 'Creative', accent: '#5c1d3a', layout: 'student' },
+  { id: 'classic', name: 'Classic Serif', cat: 'Elegant', accent: '#7b242b', layout: 'classic' },
 ];
 const TEMPLATE_FILTERS = ['All templates', 'Simple', 'Professional', 'Two-column', 'Modern', 'Elegant', 'Creative'];
 let selectedTemplate = RESUME_TEMPLATES[2]; // default: Modern Blue
@@ -978,6 +1059,38 @@ function wireResume() {
   $('#rsFillBtn').addEventListener('click', fillFromCustomer);
   $('#editTabBtn').addEventListener('click', () => setBuilderTab('edit'));
   $('#customizeTabBtn').addEventListener('click', () => setBuilderTab('customize'));
+  // resume photo upload (premium templates ke liye)
+  $('#rsPhotoBtn').addEventListener('click', () => $('#rsPhotoInput').click());
+  $('#rsPhotoInput').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    e.target.value = '';
+    if (!f) return;
+    const url = URL.createObjectURL(f);
+    const img = new Image();
+    img.onload = () => {
+      const max = 400;
+      const s = Math.min(max / img.width, max / img.height, 1);
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.width * s);
+      c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      resumePhoto = c.toDataURL('image/jpeg', 0.85);
+      URL.revokeObjectURL(url);
+      $('#rsPhotoBox').style.backgroundImage = `url(${resumePhoto})`;
+      $('#rsPhotoBox').classList.add('has-photo');
+      $('#rsPhotoRemove').hidden = false;
+      liveResumePreview();
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); toast('Photo load nahi hui', 'err'); };
+    img.src = url;
+  });
+  $('#rsPhotoRemove').addEventListener('click', () => {
+    resumePhoto = '';
+    $('#rsPhotoBox').style.backgroundImage = '';
+    $('#rsPhotoBox').classList.remove('has-photo');
+    $('#rsPhotoRemove').hidden = true;
+    liveResumePreview();
+  });
   wireLivePreview();
   liveResumePreview();
 }

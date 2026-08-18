@@ -166,11 +166,11 @@ app.post('/api/resume', async (req, res, next) => {
 // resume markdown -> PDF download (server-side pdf-lib)
 app.post('/api/resume/pdf', async (req, res, next) => {
   try {
-    const { markdown, accent } = req.body || {};
+    const { markdown, accent, photo, template } = req.body || {};
     if (!markdown || !String(markdown).trim()) {
       return res.status(400).json({ error: 'Resume markdown missing' });
     }
-    const buf = await buildResumePdf(markdown, accent);
+    const buf = await buildResumePdf(markdown, accent, { photo: photo || '', template: template || '' });
     res.setHeader('Content-Type', 'application/pdf');
     res.setHeader('Content-Disposition', 'attachment; filename="resume.pdf"');
     res.send(buf);
