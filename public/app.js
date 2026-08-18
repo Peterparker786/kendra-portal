@@ -618,7 +618,15 @@ function liveResumePreview() {
   else pv.style.fontFamily = '';
 
   const chips = (txt) => txt.split(',').filter((s) => s.trim()).map((s) => `<span class="lp-chip">${esc(s.trim())}</span>`).join('');
-  const linkChips = [linkedin && `🔗 ${esc(linkedin)}`, portfolio && `🌐 ${esc(portfolio)}`].filter(Boolean).map((l) => `<span class="lp-chip link">${l}</span>`).join('');
+  const linkUrl = (txt) => {
+    const t = String(txt || '').trim();
+    if (!t) return '';
+    return /^https?:\/\//i.test(t) ? t : 'https://' + t.replace(/^\/+/, '');
+  };
+  const linkChips = [
+    linkedin && `<span class="lp-chip link" data-url="${esc(linkUrl(linkedin))}">🔗 ${esc(linkedin)}</span>`,
+    portfolio && `<span class="lp-chip link" data-url="${esc(linkUrl(portfolio))}">🌐 ${esc(portfolio)}</span>`,
+  ].filter(Boolean).join('');
   const body =
     sec('Objective', objective ? `<p>${esc(objective)}</p>` : '') +
     sec('Education', lines(education)) +
@@ -675,9 +683,22 @@ function renderPremiumWith(t, pv, d, isSample) {
     : '';
   const photoCircle = `<div class="lp2-photo-wrap"><div class="lp2-photo" ${photo}><span>👤</span></div></div>`;
   const lines = (txt) => txt.split('\n').filter((l) => l.trim()).map((l) => `<div class="lp2-line">${esc(l.trim())}</div>`).join('');
+  // contact lines already-escaped HTML hain (links ke liye) — dobara escape mat karo
+  const linesHtml = (txt) => txt.split('\n').filter((l) => l.trim()).map((l) => `<div class="lp2-line">${l.trim()}</div>`).join('');
   const chipRow = (txt) => (txt ? txt.split(',').filter((s) => s.trim()).map((s) => `<span class="lp2-chip">${esc(s.trim())}</span>`).join('') : '');
   const chips = chipRow(skills);
-  const contactLines = [email && `✉ ${esc(email)}`, phone && `✆ ${esc(phone)}`, addr && `📍 ${esc(addr)}`, linkedin && `🔗 ${esc(linkedin)}`, portfolio && `🌐 ${esc(portfolio)}`].filter(Boolean).join('\n');
+  const linkUrl = (txt) => {
+    const t = String(txt || '').trim();
+    if (!t) return '';
+    return /^https?:\/\//i.test(t) ? t : 'https://' + t.replace(/^\/+/, '');
+  };
+  const contactItems = [];
+  if (email) contactItems.push(`✉ ${esc(email)}`);
+  if (phone) contactItems.push(`✆ ${esc(phone)}`);
+  if (addr) contactItems.push(`📍 ${esc(addr)}`);
+  if (linkedin) contactItems.push(`<span data-url="${esc(linkUrl(linkedin))}">🔗 ${esc(linkedin)}</span>`);
+  if (portfolio) contactItems.push(`<span data-url="${esc(linkUrl(portfolio))}">🌐 ${esc(portfolio)}</span>`);
+  const contactLines = contactItems.join('\n');
   const whiteSec = (h, body) => (body ? `<div class="lp2-sec"><h3>${esc(h)}</h3><div class="lp2-sec-body">${body}</div></div>` : '');
   const mainSec = (h, body) => (body ? `<div class="lp2-sec"><h2>${esc(h)}</h2><div class="lp2-sec-body">${body}</div></div>` : '');
 
@@ -689,7 +710,7 @@ function renderPremiumWith(t, pv, d, isSample) {
         <div class="lp-band-name">${esc(name)}${title ? `<span>${esc(title)}</span>` : ''}</div>
       </div>`;
     pv.innerHTML = badge + `<div class="lp-band">${band}<div class="lp-band-cols">
-        <div class="lp-band-left">${whiteSec('Contact', lines(contactLines))}${whiteSec('Skills', chips)}${whiteSec('Languages', chipRow(languages))}${whiteSec('Hobbies', chipRow(hobbies))}${whiteSec('Education', lines(education))}</div>
+        <div class="lp-band-left">${whiteSec('Contact', linesHtml(contactLines))}${whiteSec('Skills', chips)}${whiteSec('Languages', chipRow(languages))}${whiteSec('Hobbies', chipRow(hobbies))}${whiteSec('Education', lines(education))}</div>
         <div class="lp-band-right">${mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '')}${mainSec('Experience', lines(experience))}${mainSec('Education', lines(education))}</div>
       </div></div>`;
     updateResumeScore();
@@ -701,7 +722,7 @@ function renderPremiumWith(t, pv, d, isSample) {
       <div class="lp2-side" style="background:${t.accent}">
         ${photoCircle}
         <div class="lp2-stu-name">${esc(name)}</div>
-        ${whiteSec('Contact', lines(contactLines))}
+        ${whiteSec('Contact', linesHtml(contactLines))}
       </div>
       <div class="lp2-main">
         ${mainSec('🎓 Education', lines(education))}
@@ -717,7 +738,7 @@ function renderPremiumWith(t, pv, d, isSample) {
   }
 
   // split / classic — sidebar + main
-  const sideBody = whiteSec('Contact', lines(contactLines)) + whiteSec('Skills', chips) + whiteSec('Languages', chipRow(languages)) + whiteSec('Hobbies', chipRow(hobbies)) + whiteSec('Education', lines(education));
+  const sideBody = whiteSec('Contact', linesHtml(contactLines)) + whiteSec('Skills', chips) + whiteSec('Languages', chipRow(languages)) + whiteSec('Hobbies', chipRow(hobbies)) + whiteSec('Education', lines(education));
   const mainHead = `<div class="lp2-head"><div class="lp2-name">${esc(name)}</div>${title ? `<div class="lp2-title">${esc(title)}</div>` : ''}</div>`;
   const mainBody = mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '') + mainSec('Experience', lines(experience)) + mainSec('Education', lines(education));
   pv.innerHTML = badge + `<div class="lp2${t.layout === 'classic' ? ' classic' : ''}">
@@ -809,6 +830,23 @@ function renderMarkdownPreview(t) {
     body = `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${body}</div>`;
   }
   pv.innerHTML = body;
+  attachLinkAttrs(pv);
+}
+
+// PDF me clickable links banane ke liye URL wale text elements pe data-url lagao
+function linkUrl(txt) {
+  const t = String(txt || '').trim();
+  if (!t) return '';
+  return /^https?:\/\//i.test(t) ? t : 'https://' + t.replace(/^\/+/, '');
+}
+
+function attachLinkAttrs(root) {
+  if (!root) return;
+  root.querySelectorAll('.lp-contact span, .lp-line, .lp-sec-body p, .lp2-line, .lp2-sec-body p').forEach((el) => {
+    if (el.dataset && el.dataset.url) return;
+    const m = String(el.textContent || '').match(/(linkedin\.com\/[^\s|]+|(?:https?:\/\/)?[\w-]+\.(?:dev|me|com|in|org|net)\/?[^\s|]*)/i);
+    if (m) el.dataset.url = linkUrl(m[0]);
+  });
 }
 
 // ---- resume AI loading bar (build + template change dono me) ----
@@ -967,6 +1005,21 @@ async function pdfFromPreview() {
   holder.appendChild(clone);
   document.body.appendChild(holder);
   try {
+    // clickable links: data-url elements ki position measure karo (A4 clone me)
+    const cloneRect = clone.getBoundingClientRect();
+    const links = Array.from(clone.querySelectorAll('[data-url]'))
+      .map((el) => {
+        const r = el.getBoundingClientRect();
+        return {
+          url: el.dataset.url,
+          x: r.left - cloneRect.left,
+          y: r.top - cloneRect.top,
+          w: r.width,
+          h: r.height,
+        };
+      })
+      .filter((l) => l.url && /^https?:\/\//i.test(l.url));
+
     const canvas = await mod.toCanvas(clone, { pixelRatio: 2, backgroundColor: '#ffffff' });
     const { jsPDF } = window.jspdf;
     const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
@@ -974,9 +1027,19 @@ async function pdfFromPreview() {
     const imgH = (canvas.height * pw) / canvas.width;
     const pages = Math.max(1, Math.ceil(imgH / ph));
     const img = canvas.toDataURL('image/jpeg', 0.95);
+    const scale = pw / (cloneRect.width || 794);
     for (let i = 0; i < pages; i++) {
       if (i > 0) pdf.addPage();
       pdf.addImage(img, 'JPEG', 0, -i * ph, pw, imgH, undefined, 'FAST');
+      // har link ko uske page pe clickable rectangle do
+      for (const l of links) {
+        const yTop = l.y * scale;
+        const pg = Math.floor(yTop / ph);
+        if (pg !== i) continue;
+        const yOnPage = yTop - pg * ph;
+        if (yOnPage + l.h * scale > ph) continue;
+        pdf.link(l.x * scale, yOnPage, Math.max(4, l.w * scale), l.h * scale, { url: l.url });
+      }
     }
     pdf.save(`resume-${(document.getElementById('rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '')}.pdf`);
   } finally {
