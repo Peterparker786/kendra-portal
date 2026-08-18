@@ -1160,3 +1160,64 @@ body {
   color: var(--muted);
 }
 .up-meta b { color: var(--accent-dark); font-weight: 700; }
+
+/* ---------------- resume live builder (form + live preview) ---------------- */
+.rs-score {
+  background: #f5f7fb;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 14px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+.rs-score-top { display: flex; justify-content: space-between; align-items: center; font-size: 12.5px; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
+.rs-score-top b { color: var(--accent); }
+.rs-score-track { height: 7px; background: #e2e8f0; border-radius: 999px; overflow: hidden; }
+.rs-score-fill { height: 100%; width: 0%; border-radius: 999px; background: linear-gradient(90deg, #dc2626, #ef4444); transition: width 0.35s ease, background 0.35s ease; }
+
+/* live preview — paper card */
+.resume-preview { background: #fff; }
+.lp-banner {
+  padding: 26px 24px 20px;
+  color: #fff;
+  margin: -1px -1px 0;
+  border-radius: 12px 12px 0 0;
+  text-align: center;
+}
+.lp-name { font-size: 26px; font-weight: 800; letter-spacing: 0.3px; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25); }
+.lp-title { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 1.5px; opacity: 0.92; margin-top: 3px; }
+.lp-contact {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 14px;
+  padding: 10px 14px; font-size: 12.5px; color: #475569;
+  border-bottom: 1px solid #e2e8f0; background: #fafbfc;
+}
+.lp-contact .dot { color: #cbd5e1; }
+.lp-contact.center { border-bottom: none; }
+.lp-body { padding: 18px 22px 22px; }
+.lp-sec { margin-bottom: 14px; }
+.lp-sec h2 {
+  font-size: 14.5px; font-weight: 800; color: var(--accent, #2563eb);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  border-bottom: 2px solid var(--accent, #2563eb);
+  padding-bottom: 4px; margin: 0 0 7px;
+}
+.resume-preview.tpl-modern .lp-sec h2,
+.resume-preview.tpl-navy .lp-sec h2 { color: #fff; background: var(--accent); border: none; padding: 4px 9px; border-radius: 5px; display: inline-block; }
+.resume-preview.tpl-gradient { background: linear-gradient(135deg, #eef2ff, #ffffff 55%); }
+.resume-preview.tpl-minimal .lp-banner { background: transparent !important; color: #111827; text-shadow: none; padding: 10px 0 2px; }
+.resume-preview.tpl-minimal .lp-name { text-align: center; letter-spacing: 1px; }
+.resume-preview.tpl-minimal .lp-title { color: #6b7280; text-align: center; }
+.resume-preview.tpl-minimal .lp-contact { background: transparent; }
+.resume-preview.tpl-minimal .lp-sec h2 { border: none; text-transform: uppercase; letter-spacing: 1.2px; font-size: 12.5px; }
+.lp-sec-body p { margin: 4px 0; font-size: 13px; line-height: 1.55; color: #334155; }
+.lp-line { font-size: 13px; line-height: 1.5; color: #334155; padding: 2px 0; }
+.lp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.lp-chip {
+  font-size: 12px; font-weight: 600; color: var(--accent, #2563eb);
+  background: color-mix(in srgb, var(--accent, #2563eb) 10%, #fff);
+  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 35%, #fff);
+  border-radius: 999px; padding: 3px 11px;
+}
+.lp-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 18px 0; }
+.resume-preview.tpl-twocol .lp-banner { margin: 0; border-radius: 0; }
+.resume-preview.tpl-twocol .lp-contact { border-radius: 0; }

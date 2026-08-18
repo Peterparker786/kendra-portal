@@ -291,6 +291,12 @@
             </div>
             <div class="resume-grid">
               <div class="resume-form">
+                <div class="rs-score">
+                  <div class="rs-score-top"><span>Your resume score</span><b id="rsScoreVal">0%</b></div>
+                  <div class="rs-score-track"><div class="rs-score-fill" id="rsScoreFill"></div></div>
+                </div>
+                <div class="field-label">Job Target <span class="hint-inline">(job title jo aapko chahiye)</span></div>
+                <input type="text" id="rsTitle" class="input wide" placeholder="e.g. Accountant, Office Assistant, Data Entry Operator" />
                 <div class="grid2">
                   <div>
                     <div class="field-label">Customer Name <span class="req">*</span></div>
@@ -337,14 +343,14 @@
               </div>
               <div class="resume-result">
                 <div class="resume-result-head">
-                  <b>Resume Preview</b>
+                  <b>Live Preview <span class="hint-inline">(type karte hi update hota hai)</span></b>
                   <div class="head-actions">
                     <button class="btn sm" id="resumeDownloadBtn" disabled>⬇ Download</button>
                     <button class="btn sm" id="resumePrintBtn" disabled>🖨 Print</button>
                   </div>
                 </div>
                 <div class="resume-preview" id="resumePreview">
-                  <p class="empty">Yahan resume dikhega — details bharo aur "AI se Resume banao" dabao.</p>
+                  <p class="empty">Details bharo — preview yahan turant dikhega (selected template me). ✨ "AI se Resume banao" se polished version milega.</p>
                 </div>
               </div>
             </div>

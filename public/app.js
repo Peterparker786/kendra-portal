@@ -489,8 +489,93 @@ function renderDonut(byType, total) {
 
 let resumeMarkdown = '';
 
+// ---- live resume preview (har keystroke pe update) ----
+
+function updateResumeScore() {
+  const fields = {
+    rsTitle: 10, rsName: 15, rsPhone: 10, rsEmail: 10, rsAddress: 5, rsDob: 5,
+    rsFather: 5, rsObjective: 15, rsEducation: 15, rsSkills: 10, rsExperience: 5,
+  };
+  let got = 0;
+  for (const [id, w] of Object.entries(fields)) {
+    const el = document.getElementById(id);
+    if (el && el.value.trim()) got += w;
+  }
+  const el = document.getElementById('rsScoreVal');
+  const fill = document.getElementById('rsScoreFill');
+  if (el) el.textContent = got + '%';
+  if (fill) {
+    fill.style.width = got + '%';
+    fill.style.background = got >= 70 ? 'linear-gradient(90deg,#16a34a,#22c55e)' : got >= 40 ? 'linear-gradient(90deg,#d97706,#f59e0b)' : 'linear-gradient(90deg,#dc2626,#ef4444)';
+  }
+}
+
+function liveResumePreview() {
+  const pv = document.getElementById('resumePreview');
+  if (!pv) return;
+  const t = selectedTemplate;
+  const g = (id) => document.getElementById(id).value.trim();
+  const name = g('rsName') || 'Customer Name';
+  const title = g('rsTitle');
+  const email = g('rsEmail');
+  const phone = g('rsPhone');
+  const addr = g('rsAddress');
+  const objective = g('rsObjective');
+  const education = g('rsEducation');
+  const skills = g('rsSkills');
+  const experience = g('rsExperience');
+
+  let contact = [];
+  if (email) contact.push(`<span>✉ ${esc(email)}</span>`);
+  if (addr) contact.push(`<span>📍 ${esc(addr)}</span>`);
+  if (phone) contact.push(`<span>📞 ${esc(phone)}</span>`);
+
+  const sec = (heading, body) =>
+    body ? `<div class="lp-sec"><h2>${esc(heading)}</h2><div class="lp-sec-body">${body}</div></div>` : '';
+  const lines = (txt) =>
+    txt.split('\n').filter((l) => l.trim()).map((l) => `<div class="lp-line">${esc(l.trim())}</div>`).join('');
+
+  let head =
+    `<div class="lp-banner" style="background:${t.accent}">
+      <div class="lp-name">${esc(name)}</div>
+      ${title ? `<div class="lp-title">${esc(title.toUpperCase())}</div>` : ''}
+    </div>` +
+    (contact.length ? `<div class="lp-contact">${contact.join('<span class="dot">•</span>')}</div>` : '');
+
+  if (t.layout === 'minimal') {
+    head = `<div class="lp-min-head"><div class="lp-name">${esc(name)}</div>${title ? `<div class="lp-title">${esc(title)}</div>` : ''}</div>` +
+      (contact.length ? `<div class="lp-contact center">${contact.join('<span class="dot">•</span>')}</div>` : '');
+  }
+  if (t.layout === 'serif') pv.style.fontFamily = "Georgia, 'Times New Roman', serif";
+  else pv.style.fontFamily = '';
+
+  const body =
+    sec('Objective', objective ? `<p>${esc(objective)}</p>` : '') +
+    sec('Education', lines(education)) +
+    sec('Skills', skills ? `<div class="lp-chips">${skills.split(',').filter((s) => s.trim()).map((s) => `<span class="lp-chip">${esc(s.trim())}</span>`).join('')}</div>` : '') +
+    sec('Experience', lines(experience));
+
+  const inner = head + `<div class="lp-body">${body || '<p class="lp-empty">Details bharo — yahan preview turant dikhega ✨</p>'}</div>`;
+
+  pv.className = `resume-preview tpl-${t.id}`;
+  if (t.layout === 'sidebar') {
+    pv.innerHTML = `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${inner}</div>`;
+  } else {
+    pv.innerHTML = inner;
+  }
+  updateResumeScore();
+}
+
+function wireLivePreview() {
+  ['rsTitle', 'rsName', 'rsPhone', 'rsEmail', 'rsAddress', 'rsDob', 'rsFather', 'rsObjective', 'rsEducation', 'rsSkills', 'rsExperience'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('input', liveResumePreview);
+  });
+}
+
 function collectResumeDetails() {
   return {
+    title: $('#rsTitle').value.trim(),
     name: $('#rsName').value.trim(),
     phone: $('#rsPhone').value.trim(),
     email: $('#rsEmail').value.trim(),
@@ -597,6 +682,7 @@ function fillFromCustomer() {
       $('#rsAddress').value = c.address || '';
       $('#rsDob').value = c.dob || '';
       $('#rsFather').value = c.father || '';
+      liveResumePreview();
       toast(`"${c.name}" ki details bhar di`);
     })
     .catch((err) => toast(err.message, 'err'));
@@ -713,6 +799,7 @@ function selectTemplate(t) {
   selectedTemplate = t;
   $('#tplSelectedBadge').textContent = `Template: ${t.name}`;
   $('#tplSelectedBadge').style.color = t.accent;
+  liveResumePreview(); // naye template ke colors preview me turant dikhein
   // template chuna -> "How do you want to start?" (naya ya purana upload)
   $('#resumeStartModal').hidden = false;
 }
@@ -780,6 +867,7 @@ function wireResume() {
         body: JSON.stringify({ text }),
       }).then((r) => r.json());
       const f = (parsed && parsed.fields) || {};
+      $('#rsTitle').value = f.title || f.jobTitle || '';
       $('#rsName').value = f.name || '';
       $('#rsPhone').value = f.phone || '';
       $('#rsEmail').value = f.email || '';
@@ -791,6 +879,7 @@ function wireResume() {
       $('#rsSkills').value = f.skills || '';
       $('#rsExperience').value = f.experience || text;
       showResumeForm();
+      liveResumePreview();
       st.textContent = '✅ Purane resume ki info naye template me bhar di — update karke "AI se Resume banao" dabao, phir download karo.';
       toast('Purane resume se info bhar di!');
     } catch (err) {
@@ -816,6 +905,8 @@ function wireResume() {
   $('#resumeDownloadBtn').addEventListener('click', downloadResume);
   $('#resumePrintBtn').addEventListener('click', printResume);
   $('#rsFillBtn').addEventListener('click', fillFromCustomer);
+  wireLivePreview();
+  liveResumePreview();
 }
 
 // ---------------------------------------------------------------- document details modal
