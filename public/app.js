@@ -1406,51 +1406,66 @@ function wireResume() {
     $('#resumeHero').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('#rsUploadBtn').addEventListener('click', () => $('#rsUploadInput').click());
-  $('#rsUploadInput').addEventListener('change', async (e) => {
+  $('#rsUploadInput').addEventListener('change', (e) => {
     const file = e.target.files[0];
     e.target.value = '';
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
+    if (file) handleResumeFile(file, 'Old Resume');
+  });
+  ['rsFileMarksheet', 'rsFileOld', 'rsFileExp'].forEach((id) => {
+    $(`#${id}`).addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      e.target.value = '';
+      if (!file) return;
+      const label = id === 'rsFileMarksheet' ? 'Marksheet' : id === 'rsFileOld' ? 'Old Resume' : 'Experience Certificate';
+      handleResumeFile(file, label);
+    });
+  });
+  async function handleResumeFile(file, label) {
     const st = $('#resumeStatus');
     st.hidden = false;
-    st.textContent = 'Resume padh raha hai… (scanned ho to thoda time)';
+    st.textContent = `${label} padh raha hai… (scanned ho to thoda time)`;
+    showResumeProgress(`📄 ${label} padh raha hai…`);
     try {
+      const fd = new FormData();
+      fd.append('file', file);
       const up = await fetch('/api/resume/upload', { method: 'POST', body: fd }).then((r) => r.json());
       if (!up.ok && !up.text) throw new Error(up.error || 'Upload fail');
       const text = up.text || '';
-      if (!text.trim()) throw new Error('Resume se text nahi nikla');
-      st.textContent = 'Info nikal raha hai (AI)… 10-20 sec';
+      if (!text.trim()) throw new Error(`${label} se text nahi nikla`);
+      st.textContent = `${label} se info nikal raha hai (AI)… 10-20 sec`;
       const parsed = await fetch('/api/resume/parse', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ text }),
       }).then((r) => r.json());
       const f = (parsed && parsed.fields) || {};
-      $('#rsTitle').value = f.title || f.jobTitle || '';
-      $('#rsName').value = f.name || '';
-      $('#rsPhone').value = f.phone || '';
-      $('#rsEmail').value = f.email || '';
-      $('#rsAddress').value = f.address || '';
-      $('#rsDob').value = f.dob || '';
-      $('#rsFather').value = f.father || '';
-      $('#rsObjective').value = f.objective || '';
-      $('#rsEducation').value = f.education || '';
-      $('#rsSkills').value = f.skills || '';
-      $('#rsLanguages').value = f.languages || '';
-      $('#rsHobbies').value = f.hobbies || '';
-      $('#rsLinkedin').value = f.linkedin || '';
-      $('#rsPortfolio').value = f.portfolio || '';
-      $('#rsExperience').value = f.experience || text;
-      showResumeForm();
+      const map = {
+        name: 'rsName', phone: 'rsPhone', email: 'rsEmail', address: 'rsAddress', dob: 'rsDob',
+        father: 'rsFather', objective: 'rsObjective', education: 'rsEducation', skills: 'rsSkills',
+        languages: 'rsLanguages', hobbies: 'rsHobbies', linkedin: 'rsLinkedin', portfolio: 'rsPortfolio',
+      };
+      let filled = 0;
+      for (const [k, id] of Object.entries(map)) {
+        if (f[k]) { $(`#${id}`).value = String(f[k]); filled++; }
+      }
+      if (f.title || f.jobTitle) $('#rsTitle').value = String(f.title || f.jobTitle);
+      if (!f.experience && label === 'Experience Certificate') {
+        $('#rsExperience').value = text;
+      } else if (f.experience) {
+        $('#rsExperience').value = String(f.experience);
+      }
       liveResumePreview();
-      st.textContent = '✅ Purane resume ki info naye template me bhar di — update karke "AI se Resume banao" dabao, phir download karo.';
-      toast('Purane resume se info bhar di!');
+      hideResumeProgress(`✅ ${label} se info bhar di!`);
+      st.textContent = filled
+        ? `✅ ${label} se ${filled} fields bhar gaye — check karke update karo, phir "AI se Resume banao" dabao.`
+        : `⚠️ ${label} se koi field nahi nikla — AI key check karo ya clear file use karo.`;
+      toast(filled ? `${label} se info bhar di!` : `${label} se kuch nahi nikla`, filled ? '' : 'err');
     } catch (err) {
+      hideResumeProgress();
       st.textContent = 'Error: ' + err.message;
       toast(err.message, 'err');
     }
-  });
+  }
   $('#startCreate').addEventListener('click', () => {
     $('#resumeStartModal').hidden = true;
     showResumeForm();
