@@ -616,7 +616,7 @@ function liveResumePreview() {
   const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
 
   pv.className = `resume-preview tpl-${t.id}`;
-  if (t.layout === 'sidebar') {
+  if (t.layout === 'sidebar' || t.layout === 'dark-side') {
     pv.innerHTML = badge + `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${inner}</div>`;
   } else {
     pv.innerHTML = badge + inner;
@@ -770,7 +770,7 @@ function renderMarkdownPreview(t) {
   }
   pv.className = `resume-preview tpl-${t.id}`;
   let body = mdToHtml(resumeMarkdown);
-  if (t.layout === 'sidebar') {
+  if (t.layout === 'sidebar' || t.layout === 'dark-side') {
     body = `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${body}</div>`;
   }
   pv.innerHTML = body;
@@ -1078,6 +1078,14 @@ const RESUME_TEMPLATES = [
   { id: 'band-rose', name: 'Rose Band', cat: 'Modern', accent: '#be123c', layout: 'band' },
   { id: 'student', name: 'Student Card', cat: 'Creative', accent: '#5c1d3a', layout: 'student' },
   { id: 'classic', name: 'Classic Serif', cat: 'Elegant', accent: '#7b242b', layout: 'classic' },
+  { id: 'dark-slate', name: 'Dark Slate', cat: 'Modern', accent: '#38bdf8', layout: 'dark' },
+  { id: 'dark-side', name: 'Dark Sidebar', cat: 'Two-column', accent: '#7c3aed', layout: 'dark-side' },
+  { id: 'pastel-pink', name: 'Pastel Pink', cat: 'Simple', accent: '#ec4899', layout: 'pastel' },
+  { id: 'pastel-mint', name: 'Pastel Mint', cat: 'Simple', accent: '#14b8a6', layout: 'pastel' },
+  { id: 'sunset', name: 'Sunset Glow', cat: 'Modern', accent: '#f97316', layout: 'gradient' },
+  { id: 'ocean', name: 'Ocean Deep', cat: 'Modern', accent: '#1d4ed8', layout: 'band' },
+  { id: 'violet', name: 'Violet Dream', cat: 'Creative', accent: '#8b5cf6', layout: 'gradient' },
+  { id: 'forest', name: 'Forest Gold', cat: 'Elegant', accent: '#166534', layout: 'single' },
 ];
 const TEMPLATE_FILTERS = ['All templates', 'Simple', 'Professional', 'Two-column', 'Modern', 'Elegant', 'Creative'];
 let selectedTemplate = RESUME_TEMPLATES[2]; // default: Modern Blue
@@ -1087,7 +1095,7 @@ function mockPhoto() {
 }
 
 function miniPreview(t) {
-  const SIDE_TYPES = ['sidebar', 'split', 'student', 'classic'];
+  const SIDE_TYPES = ['sidebar', 'split', 'student', 'classic', 'dark-side'];
   if (SIDE_TYPES.includes(t.layout)) {
     return `<div class="tpl-mini side" style="--accent:${t.accent}">
       <div class="mini-side" style="background:${t.accent}">
@@ -1184,7 +1192,7 @@ function selectTemplate(t) {
 }
 
 function custMock(t) {
-  const SIDE_TYPES = ['sidebar', 'split', 'student', 'classic'];
+  const SIDE_TYPES = ['sidebar', 'split', 'student', 'classic', 'dark-side'];
   if (SIDE_TYPES.includes(t.layout)) {
     return `<div class="cust-thumb side2">
       <div class="cust-side2" style="background:${t.accent}">
