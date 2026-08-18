@@ -632,15 +632,67 @@ function mdToHtml(md) {
   return html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
+let resumeCountDone = false;
+
+function animateResumeCount() {
+  if (resumeCountDone) return;
+  resumeCountDone = true;
+  const el = $('#resumeCount');
+  const target = 212024;
+  const start = Date.now();
+  const dur = 1500;
+  const tick = () => {
+    const p = Math.min(1, (Date.now() - start) / dur);
+    el.textContent = Math.floor(target * (1 - Math.pow(1 - p, 3))).toLocaleString('en-IN');
+    if (p < 1) requestAnimationFrame(tick);
+  };
+  tick();
+}
+
+function openResumePage() {
+  $('#resumePage').hidden = false;
+  $('#resumePage').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  animateResumeCount();
+}
+
 function wireResume() {
-  $('#resumeBtn').addEventListener('click', () => {
-    $('#resumeModal').hidden = false;
+  $('#resumeBtn').addEventListener('click', openResumePage);
+  $('#rsCreateBtn').addEventListener('click', () => {
+    $('#resumeFormWrap').hidden = false;
+    $('#resumeFormWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
-  $('#resumeClose').addEventListener('click', () => {
-    $('#resumeModal').hidden = true;
-  });
-  $('#resumeModal').addEventListener('click', (e) => {
-    if (e.target === $('#resumeModal')) $('#resumeModal').hidden = true;
+  $('#rsUploadBtn').addEventListener('click', () => $('#rsUploadInput').click());
+  $('#rsUploadInput').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    const st = $('#resumeStatus');
+    st.hidden = false;
+    st.textContent = 'Resume padh raha hai… (scanned ho to thoda time)';
+    fetch('/api/resume/upload', { method: 'POST', body: fd })
+      .then(async (res) => {
+        const d = await res.json();
+        if (!res.ok) throw new Error(d.error || 'Upload fail');
+        return d;
+      })
+      .then((d) => {
+        $('#resumeFormWrap').hidden = false;
+        const exp = $('#rsExperience');
+        if (d.text && d.text.trim()) {
+          exp.value = d.text.trim();
+          const first = d.text.trim().split('\n')[0].trim();
+          if (first && !$('#rsName').value) $('#rsName').value = first;
+        }
+        st.textContent = '✅ Resume se text nikal aaya — ab "AI se Resume banao" dabao, AI usse polish karega.';
+        $('#resumeFormWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+        toast('Resume upload ho gaya!');
+      })
+      .catch((err) => {
+        st.textContent = 'Error: ' + err.message;
+        toast(err.message, 'err');
+      });
   });
   $('#resumeMakeBtn').addEventListener('click', buildResume);
   $('#resumeDownloadBtn').addEventListener('click', downloadResume);
@@ -715,23 +767,29 @@ function wireNav() {
     const el = document.getElementById(id);
     if (el) el.classList.add('active');
   };
+  const hideResume = () => { $('#resumePage').hidden = true; };
   $('#navDash').addEventListener('click', () => {
+    hideResume();
     scrollTo(document.querySelector('.main-col .wrap'));
     setActive('navDash');
   });
   $('#navUpload').addEventListener('click', () => {
+    hideResume();
     scrollTo($('#uploadZone'));
     setActive('navUpload');
   });
   $('#navReview').addEventListener('click', () => {
+    hideResume();
     scrollTo($('#customerList'));
     setActive('navReview');
   });
   $('#navCustomers').addEventListener('click', () => {
+    hideResume();
     scrollTo($('#customerList'));
     setActive('navCustomers');
   });
   $('#navDocs').addEventListener('click', () => {
+    hideResume();
     scrollTo($('#customerList'));
     setActive('navDocs');
   });

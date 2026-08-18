@@ -299,6 +299,36 @@ const AI_KEY_MAP = {
 
 // ---------------------------------------------------------------- entry point
 
+/** Resume maker ke liye: file ka sirf raw text nikal lo (PDF/image/txt) */
+export async function extractRawText(buffer, filename) {
+  const lower = String(filename || '').toLowerCase();
+  const isImage = /\.(jpe?g|png)$/.test(lower);
+  let lines = textLinesFromBuffer(buffer, filename);
+  if (!lines && isImage) {
+    const ocr = await textLinesFromImage(buffer);
+    lines = ocr.lines;
+  }
+  if (!lines && lower.endsWith('.pdf')) {
+    try {
+      lines = await extractPdfText(buffer);
+    } catch {
+      lines = null;
+    }
+  }
+  if (!lines) return '';
+  let text = lines.map((l) => l.text).join('\n').trim();
+  // scanned / chhota text -> AI se padho
+  if (text.length < 40) {
+    try {
+      const ai = await aiExtract(buffer, filename);
+      if (ai && ai.text && String(ai.text).trim().length > text.length) text = String(ai.text).trim();
+    } catch {
+      /* ignore */
+    }
+  }
+  return text;
+}
+
 export async function analyzeDocument(buffer, filename) {
   const lower = String(filename || '').toLowerCase();
   const isImage = /\.(jpe?g|png)$/.test(lower);
