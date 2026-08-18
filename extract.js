@@ -183,6 +183,17 @@ function extractFields(lines) {
     }
   }
 
+  // PAN number (10 chars: 5 letters + 4 digits + 1 letter, e.g. ABCDE1234F)
+  if (!seen['Document No']) {
+    for (const l of lines) {
+      const m = l.match(/\b[A-Z]{5}[0-9]{4}[A-Z]\b/);
+      if (m) {
+        add('Document No', m[0]);
+        break;
+      }
+    }
+  }
+
   // Issue date
   if (!seen['Issue Date']) {
     for (const l of lines) {
@@ -214,6 +225,7 @@ function detectDocType(text) {
     [/niwas|residen|rasid|mool/i, 'Niwas Praman (Residence)'],
     [/domicile/i, 'Domicile Certificate'],
     [/aadhaar|aadhar|uidai/i, 'Aadhaar Card'],
+    [/pan\b|permanent account/i, 'PAN Card'],
     [/cast|jati/i, 'Cast Certificate'],
     [/income|aay\b/i, 'Income Certificate'],
     [/birth|janm/i, 'Birth Certificate'],
@@ -240,6 +252,7 @@ const AI_KEY_MAP = {
   address: 'Address',
   phone: 'Phone / Email',
   docNo: 'Document No',
+  panNo: 'Document No',
   issueDate: 'Issue Date',
   validTill: 'Valid Till',
   issuedBy: 'Issued By',
@@ -258,9 +271,13 @@ export async function analyzeDocument(buffer, filename) {
       const ai = await aiExtract(buffer, filename);
       if (ai && ai.fields && Object.values(ai.fields).some((v) => String(v || '').trim())) {
         const fields = [];
+        const pushed = {};
         for (const [k, display] of Object.entries(AI_KEY_MAP)) {
           const v = String(ai.fields[k] ?? '').trim();
-          if (v) fields.push({ key: display, value: v });
+          if (v && !pushed[display]) {
+            fields.push({ key: display, value: v });
+            pushed[display] = true;
+          }
         }
         const customerField = fields.find((f) => f.key === 'Customer Name');
         const customerName =
