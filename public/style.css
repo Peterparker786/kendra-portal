@@ -1392,3 +1392,23 @@ body {
   font-size: 12px; font-weight: 600; color: #64748b; margin-top: 7px;
 }
 .rs-prog-row b { color: #6d28d9; }
+
+/* ---------------- sample data in templates (pehle se filled dikhte hain) ---------------- */
+.lp-sample-badge {
+  background: linear-gradient(90deg, #fef3c7, #fde68a);
+  color: #92400e; font-size: 11px; font-weight: 700;
+  border: 1px solid #fcd34d; border-radius: 999px;
+  padding: 5px 12px; margin-bottom: 10px; text-align: center;
+}
+.mini-head { margin-bottom: 4px; }
+.mini-title { font-size: 9px; font-weight: 600; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.6px; }
+.mini-sec { font-size: 8.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin-top: 7px; margin-bottom: 3px; }
+.mini-line { height: 3.5px; border-radius: 2px; background: #e5e7eb; }
+.mini-line.d { background: #d1d5db; }
+.cust-title { font-size: 10.5px; color: #64748b; font-weight: 600; margin-bottom: 6px; }
+.cust-sec { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; margin: 7px 0 4px; }
+.cust-chip {
+  display: inline-block; font-size: 8.5px; font-weight: 700;
+  border: 1px solid var(--accent, #4f46e5); color: var(--accent, #4f46e5);
+  border-radius: 999px; padding: 1px 7px; margin: 1px 2px 1px 0;
+}

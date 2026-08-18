@@ -490,6 +490,19 @@ function renderDonut(byType, total) {
 let resumeMarkdown = '';
 let resumePhoto = ''; // optional photo (dataURL) — premium templates me dikhti hai
 
+// Sample data — templates pehle se filled dikhte hain taaki pata chale kaise lagega
+const SAMPLE_RESUME = {
+  name: 'Ramesh Kumar',
+  title: 'Accountant',
+  email: 'ramesh@gmail.com',
+  phone: '9876543210',
+  addr: 'Varanasi, UP',
+  objective: 'Motivated accountant with 5 years of experience in billing, bookkeeping and GST filing.',
+  education: 'B.Com, Banaras Hindu University, 2021\nIntermediate, UP Board, 2019',
+  skills: 'Tally, MS Excel, Typing, GST Filing',
+  experience: 'Accountant, City Traders, 2021-2024\n• Managed daily billing and GST returns\n• Prepared monthly reports',
+};
+
 // ---- live resume preview (har keystroke pe update) ----
 
 function updateResumeScore() {
@@ -520,15 +533,21 @@ function liveResumePreview() {
     return;
   }
   const g = (id) => document.getElementById(id).value.trim();
-  const name = g('rsName') || 'Customer Name';
-  const title = g('rsTitle');
-  const email = g('rsEmail');
-  const phone = g('rsPhone');
-  const addr = g('rsAddress');
-  const objective = g('rsObjective');
-  const education = g('rsEducation');
-  const skills = g('rsSkills');
-  const experience = g('rsExperience');
+  // form khali ho to sample data dikhao (taaki template ka look pehle se pata chale)
+  const isSample = !g('rsName');
+  const F = isSample ? SAMPLE_RESUME : {
+    name: g('rsName'), title: g('rsTitle'), email: g('rsEmail'), phone: g('rsPhone'), addr: g('rsAddress'),
+    objective: g('rsObjective'), education: g('rsEducation'), skills: g('rsSkills'), experience: g('rsExperience'),
+  };
+  const name = F.name || 'Customer Name';
+  const title = F.title;
+  const email = F.email;
+  const phone = F.phone;
+  const addr = F.addr;
+  const objective = F.objective;
+  const education = F.education;
+  const skills = F.skills;
+  const experience = F.experience;
 
   let contact = [];
   if (email) contact.push(`<span>✉ ${esc(email)}</span>`);
@@ -561,12 +580,13 @@ function liveResumePreview() {
     sec('Experience', lines(experience));
 
   const inner = head + `<div class="lp-body">${body || '<p class="lp-empty">Details bharo — yahan preview turant dikhega ✨</p>'}</div>`;
+  const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
 
   pv.className = `resume-preview tpl-${t.id}`;
   if (t.layout === 'sidebar') {
-    pv.innerHTML = `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${inner}</div>`;
+    pv.innerHTML = badge + `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${inner}</div>`;
   } else {
-    pv.innerHTML = inner;
+    pv.innerHTML = badge + inner;
   }
   updateResumeScore();
 }
@@ -575,7 +595,9 @@ function liveResumePreview() {
 
 function renderPremium(t) {
   const g = (id) => document.getElementById(id).value.trim();
-  renderPremiumWith(t, document.getElementById('resumePreview'), {
+  // form khali ho to sample data dikhao (taaki template ka look pehle se pata chale)
+  const isSample = !g('rsName');
+  const d = isSample ? SAMPLE_RESUME : {
     name: g('rsName') || 'Customer Name',
     title: g('rsTitle'),
     email: g('rsEmail'),
@@ -585,12 +607,14 @@ function renderPremium(t) {
     education: g('rsEducation'),
     skills: g('rsSkills'),
     experience: g('rsExperience'),
-  });
+  };
+  renderPremiumWith(t, document.getElementById('resumePreview'), d, isSample);
 }
 
-function renderPremiumWith(t, pv, d) {
+function renderPremiumWith(t, pv, d, isSample) {
   if (!pv) return;
   const { name, title, email, phone, addr, objective, education, skills, experience } = d;
+  const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
 
   const photo = resumePhoto
     ? `style="background-image:url('${resumePhoto}')"`
@@ -609,7 +633,7 @@ function renderPremiumWith(t, pv, d) {
         <div class="lp2-photo-wrap band"><div class="lp2-photo" ${photo}><span>👤</span></div></div>
         <div class="lp-band-name">${esc(name)}${title ? `<span>${esc(title)}</span>` : ''}</div>
       </div>`;
-    pv.innerHTML = `<div class="lp-band">${band}<div class="lp-band-cols">
+    pv.innerHTML = badge + `<div class="lp-band">${band}<div class="lp-band-cols">
         <div class="lp-band-left">${whiteSec('Contact', lines(contactLines))}${whiteSec('Skills', chips)}${whiteSec('Education', lines(education))}</div>
         <div class="lp-band-right">${mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '')}${mainSec('Experience', lines(experience))}${mainSec('Education', lines(education))}</div>
       </div></div>`;
@@ -618,7 +642,7 @@ function renderPremiumWith(t, pv, d) {
   }
 
   if (t.layout === 'student') {
-    pv.innerHTML = `<div class="lp2">
+    pv.innerHTML = badge + `<div class="lp2">
       <div class="lp2-side" style="background:${t.accent}">
         ${photoCircle}
         <div class="lp2-stu-name">${esc(name)}</div>
@@ -639,7 +663,7 @@ function renderPremiumWith(t, pv, d) {
   const sideBody = whiteSec('Contact', lines(contactLines)) + whiteSec('Skills', chips) + whiteSec('Education', lines(education));
   const mainHead = `<div class="lp2-head"><div class="lp2-name">${esc(name)}</div>${title ? `<div class="lp2-title">${esc(title)}</div>` : ''}</div>`;
   const mainBody = mainSec('Profile', objective ? `<p>${esc(objective)}</p>` : '') + mainSec('Experience', lines(experience)) + mainSec('Education', lines(education));
-  pv.innerHTML = `<div class="lp2${t.layout === 'classic' ? ' classic' : ''}">
+  pv.innerHTML = badge + `<div class="lp2${t.layout === 'classic' ? ' classic' : ''}">
       <div class="lp2-side" style="background:${t.accent}">${t.layout === 'split' ? photoCircle : ''}${sideBody}</div>
       <div class="lp2-main">${mainHead}${mainBody}</div>
     </div>`;
@@ -1025,12 +1049,13 @@ let selectedTemplate = RESUME_TEMPLATES[2]; // default: Modern Blue
 
 function miniPreview(t) {
   const inner =
-    `<div class="mini-name">Customer Name</div>
-    <div class="mini-bar"></div>
-    <div class="mini-line"></div>
+    `<div class="mini-head"><div class="mini-name">Ramesh Kumar</div><div class="mini-title">Accountant</div></div>
+    <div class="mini-bar" style="background:${t.accent}"></div>
+    <div class="mini-sec" style="color:${t.accent}">Profile</div>
     <div class="mini-line"></div>
     <div class="mini-line d"></div>
-    <div class="mini-bar w"></div>
+    <div class="mini-sec" style="color:${t.accent}">Experience</div>
+    <div class="mini-line"></div>
     <div class="mini-line"></div>
     <div class="mini-line d"></div>`;
   if (t.layout === 'sidebar') {
@@ -1097,10 +1122,13 @@ function renderCustomizeGrid() {
   grid.innerHTML = RESUME_TEMPLATES.map((t) => {
     const sel = selectedTemplate.id === t.id ? ' selected' : '';
     const inner =
-      `<div class="cust-name">Customer Name</div>
+      `<div class="cust-name" style="color:${t.accent}">Ramesh Kumar</div>
+      <div class="cust-title">Accountant</div>
       <div class="cust-line" style="background:${t.accent}"></div>
-      <div class="cust-row"></div><div class="cust-row"></div>
-      <div class="cust-row d"></div>`;
+      <div class="cust-sec" style="color:${t.accent}">Profile</div>
+      <div class="cust-row"></div><div class="cust-row d"></div>
+      <div class="cust-sec" style="color:${t.accent}">Skills</div>
+      <div class="cust-chip">Tally</div><div class="cust-chip">Excel</div><div class="cust-chip">GST</div>`;
     const thumb = t.layout === 'sidebar'
       ? `<div class="cust-thumb side"><div class="cust-side" style="background:${t.accent}"></div><div class="cust-body">${inner}</div></div>`
       : `<div class="cust-thumb">${inner}</div>`;
