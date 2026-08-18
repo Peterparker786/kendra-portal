@@ -353,6 +353,10 @@
                   <button class="btn primary big" id="resumeMakeBtn">✨ AI se Resume banao</button>
                 </div>
                 <p class="hint" id="resumeStatus" hidden></p>
+                <div class="resume-progress" id="resumeProgress" hidden>
+                  <div class="rs-prog-track"><div class="rs-prog-fill" id="resumeProgFill"></div></div>
+                  <div class="rs-prog-row"><span id="resumeProgText">AI kaam kar raha hai…</span><b id="resumeProgTimer">0s</b></div>
+                </div>
               </div>
               <div class="resume-form" id="resumeTplCol" hidden>
                 <div class="field-label">🎨 Template chuno <span class="hint-inline">(click karte hi right side preview update hota hai)</span></div>
@@ -362,6 +366,7 @@
                 <div class="resume-result-head">
                   <b>Live Preview <span class="hint-inline">(type karte hi update hota hai)</span></b>
                   <div class="head-actions">
+                    <button class="btn sm" id="rsChangeTplBtn" title="Dusri theme me change karo">🎨 Change Template</button>
                     <button class="btn sm" id="resumeDownloadBtn" disabled>⬇ Download</button>
                     <button class="btn sm" id="resumePrintBtn" disabled>🖨 Print</button>
                   </div>

@@ -574,18 +574,23 @@ function liveResumePreview() {
 // ---- premium (trending) templates — photo + colored sidebar + structured sections ----
 
 function renderPremium(t) {
-  const pv = document.getElementById('resumePreview');
-  if (!pv) return;
   const g = (id) => document.getElementById(id).value.trim();
-  const name = g('rsName') || 'Customer Name';
-  const title = g('rsTitle');
-  const email = g('rsEmail');
-  const phone = g('rsPhone');
-  const addr = g('rsAddress');
-  const objective = g('rsObjective');
-  const education = g('rsEducation');
-  const skills = g('rsSkills');
-  const experience = g('rsExperience');
+  renderPremiumWith(t, document.getElementById('resumePreview'), {
+    name: g('rsName') || 'Customer Name',
+    title: g('rsTitle'),
+    email: g('rsEmail'),
+    phone: g('rsPhone'),
+    addr: g('rsAddress'),
+    objective: g('rsObjective'),
+    education: g('rsEducation'),
+    skills: g('rsSkills'),
+    experience: g('rsExperience'),
+  });
+}
+
+function renderPremiumWith(t, pv, d) {
+  if (!pv) return;
+  const { name, title, email, phone, addr, objective, education, skills, experience } = d;
 
   const photo = resumePhoto
     ? `style="background-image:url('${resumePhoto}')"`
@@ -641,6 +646,116 @@ function renderPremium(t) {
   updateResumeScore();
 }
 
+// ---- AI markdown ko kisi bhi template me render karo (Change Template ke liye) ----
+
+function parseMdSections(md) {
+  const out = { name: '', subtitle: '', sections: [] };
+  let cur = null;
+  for (const raw of String(md || '').split('\n')) {
+    const line = raw.trim();
+    if (!line || /^-{3,}$/.test(line)) continue;
+    if (/^#{1,3}\s+/.test(line)) {
+      const title = line.replace(/^#+\s*/, '').trim();
+      if (!out.name) { out.name = title; continue; }
+      if (/^##\s/.test(line)) { cur = { title, lines: [] }; out.sections.push(cur); continue; }
+      if (!cur) { out.subtitle += (out.subtitle ? ' | ' : '') + title; continue; }
+      cur.lines.push({ type: 'para', text: title });
+      continue;
+    }
+    if (/^\*\s+|- |• /.test(line)) {
+      if (cur) cur.lines.push({ type: 'bullet', text: line.replace(/^\*\s+|- |• /, '') });
+      continue;
+    }
+    if (!cur) { out.subtitle += (out.subtitle ? ' | ' : '') + line; continue; }
+    if (cur.lines.length && cur.lines[cur.lines.length - 1].type === 'para') {
+      cur.lines[cur.lines.length - 1].text += ' ' + line;
+    } else cur.lines.push({ type: 'para', text: line });
+  }
+  return out;
+}
+
+function mdToPremiumData(md) {
+  const p = parseMdSections(md);
+  const data = { name: p.name || 'Customer Name', title: '', email: '', phone: '', addr: '', objective: '', education: '', skills: '', experience: '' };
+  const parts = p.subtitle.split('|').map((s) => s.trim()).filter(Boolean);
+  if (parts[0] && !/@|\+?[\d\s()-]{7,}/.test(parts[0])) data.title = parts[0];
+  for (const s of parts) {
+    if (/\S+@\S+/.test(s)) data.email = s;
+    else if (/\+?[\d\s()-]{7,}/.test(s)) data.phone = s;
+    else if (!data.addr) data.addr = s;
+  }
+  const sec = (re) => p.sections.find((x) => re.test(x.title));
+  const secLines = (s) => (s ? s.lines.map((l) => l.text).join('\n') : '');
+  const o = sec(/summary|objective|profile/i);
+  if (o) data.objective = secLines(o);
+  const sk = sec(/skill/i);
+  if (sk) data.skills = sk.lines.map((l) => l.text).join(sk.lines.some((l) => l.type === 'para') ? ', ' : ', ');
+  const ed = sec(/education|academic/i);
+  if (ed) data.education = secLines(ed);
+  const ex = sec(/experience|work|employment/i);
+  if (ex) data.experience = secLines(ex);
+  const ad = sec(/additional|achievement|language/i);
+  if (ad) {
+    const extra = secLines(ad);
+    data.experience = data.experience ? data.experience + '\n' + extra : extra;
+  }
+  return data;
+}
+
+function renderMarkdownPreview(t) {
+  const pv = document.getElementById('resumePreview');
+  if (!pv) return;
+  if (['split', 'band', 'student', 'classic'].includes(t.layout)) {
+    renderPremiumWith(t, pv, mdToPremiumData(resumeMarkdown));
+    return;
+  }
+  pv.className = `resume-preview tpl-${t.id}`;
+  let body = mdToHtml(resumeMarkdown);
+  if (t.layout === 'sidebar') {
+    body = `<div class="tpl-side" style="background:${t.accent}"></div><div class="tpl-body">${body}</div>`;
+  }
+  pv.innerHTML = body;
+}
+
+// ---- resume AI loading bar (build + template change dono me) ----
+
+let resumeProgTimer = null;
+let resumeProgStart = 0;
+
+function showResumeProgress(text) {
+  const bar = $('#resumeProgress');
+  const fill = $('#resumeProgFill');
+  const timer = $('#resumeProgTimer');
+  if (!bar) return;
+  bar.hidden = false;
+  $('#resumeProgText').textContent = text || 'AI kaam kar raha hai…';
+  fill.style.width = '8%';
+  resumeProgStart = Date.now();
+  if (resumeProgTimer) clearInterval(resumeProgTimer);
+  resumeProgTimer = setInterval(() => {
+    const el = $('#resumeProgFill');
+    const t = $('#resumeProgTimer');
+    const sec = Math.floor((Date.now() - resumeProgStart) / 1000);
+    if (t) t.textContent = sec + 's';
+    // realistic fill: fast start, slow end, cap at 92%
+    const p = Math.min(92, 8 + 84 * (1 - Math.pow(0.985, sec)));
+    if (el) el.style.width = p + '%';
+  }, 200);
+}
+
+function hideResumeProgress(doneText) {
+  if (resumeProgTimer) clearInterval(resumeProgTimer);
+  resumeProgTimer = null;
+  const fill = $('#resumeProgFill');
+  if (fill) fill.style.width = '100%';
+  setTimeout(() => {
+    const bar = $('#resumeProgress');
+    if (bar) bar.hidden = true;
+    if (fill) fill.style.width = '8%';
+  }, 600);
+  if (doneText) $('#resumeProgText').textContent = doneText;
+}
+
 function wireLivePreview() {
   ['rsTitle', 'rsName', 'rsPhone', 'rsEmail', 'rsAddress', 'rsDob', 'rsFather', 'rsObjective', 'rsEducation', 'rsSkills', 'rsExperience'].forEach((id) => {
     const el = document.getElementById(id);
@@ -674,6 +789,7 @@ function buildResume() {
   const st = $('#resumeStatus');
   st.hidden = false;
   st.textContent = 'AI resume bana raha hai… (10-20 sec lag sakte hain)';
+  showResumeProgress('✨ AI resume bana raha hai… (10-20 sec lag sakte hain)');
   fetch('/api/resume', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -686,27 +802,41 @@ function buildResume() {
     })
     .then((data) => {
       resumeMarkdown = data.markdown;
-      const pv = $('#resumePreview');
-      pv.className = `resume-preview tpl-${selectedTemplate.id}`;
-      let body = mdToHtml(resumeMarkdown);
-      if (selectedTemplate.layout === 'sidebar') {
-        body = `<div class="tpl-side" style="background:${selectedTemplate.accent}"></div><div class="tpl-body">${body}</div>`;
-      }
-      pv.innerHTML = body;
+      renderMarkdownPreview(selectedTemplate);
       $('#resumeDownloadBtn').disabled = false;
       $('#resumePrintBtn').disabled = false;
+      hideResumeProgress('✅ Ho gaya! Resume tayyar.');
       st.textContent = data.usedAI
         ? '✅ AI se resume ban gaya! Download ya Print karo.'
         : '⚠️ AI key configure nahi hai — template se banaya (AI lagne ke baad aur acha banega).';
       toast('Resume ban gaya!');
     })
     .catch((err) => {
+      hideResumeProgress();
       st.textContent = 'Error: ' + err.message;
       toast(err.message, 'err');
     })
     .finally(() => {
       $('#resumeMakeBtn').disabled = false;
     });
+}
+
+function changeResumeTemplate(t) {
+  selectedTemplate = t;
+  $('#tplSelectedBadge').textContent = `Template: ${t.name}`;
+  $('#tplSelectedBadge').style.color = t.accent;
+  const grid = $('#resumeTplGrid');
+  if (grid) grid.querySelectorAll('.cust-card').forEach((c) => c.classList.toggle('selected', c.dataset.id === t.id));
+  if (resumeMarkdown) {
+    // AI resume ko naye theme me re-render (loading bar ke saath)
+    showResumeProgress(`🎨 ${t.name} theme me change ho raha hai…`);
+    setTimeout(() => {
+      renderMarkdownPreview(t);
+      hideResumeProgress(`✅ Template: ${t.name}`);
+    }, 900);
+  } else {
+    liveResumePreview();
+  }
 }
 
 function resumePageHtml(name, md) {
@@ -937,12 +1067,7 @@ function renderCustomizeGrid() {
     card.addEventListener('click', () => {
       const t = RESUME_TEMPLATES.find((x) => x.id === card.dataset.id);
       if (!t) return;
-      selectedTemplate = t;
-      $('#tplSelectedBadge').textContent = `Template: ${t.name}`;
-      $('#tplSelectedBadge').style.color = t.accent;
-      grid.querySelectorAll('.cust-card').forEach((c) => c.classList.remove('selected'));
-      card.classList.add('selected');
-      liveResumePreview(); // turant preview update
+      changeResumeTemplate(t);
     });
   });
 }
@@ -1059,6 +1184,14 @@ function wireResume() {
   $('#rsFillBtn').addEventListener('click', fillFromCustomer);
   $('#editTabBtn').addEventListener('click', () => setBuilderTab('edit'));
   $('#customizeTabBtn').addEventListener('click', () => setBuilderTab('customize'));
+  $('#rsChangeTplBtn').addEventListener('click', () => {
+    if (resumeMarkdown) {
+      // AI resume built hai -> seedha customize khulo (Change Template)
+      setBuilderTab('customize');
+    } else {
+      setBuilderTab('customize');
+    }
+  });
   // resume photo upload (premium templates ke liye)
   $('#rsPhotoBtn').addEventListener('click', () => $('#rsPhotoInput').click());
   $('#rsPhotoInput').addEventListener('change', (e) => {
