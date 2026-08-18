@@ -6,6 +6,7 @@
 import sharp from 'sharp';
 import { PDFDocument } from 'pdf-lib';
 import * as mupdf from 'mupdf';
+import { detectFace } from './face.js';
 
 const MM = 72 / 25.4; // 1mm = 2.8346 pt (pdf-lib points me)
 
@@ -44,17 +45,38 @@ export async function makePassportSheet(buffer, opts = {}) {
   }
   const meta = await sharp(working).metadata();
   const ar = w / h; // target aspect
-  const imgAr = meta.width / meta.height;
-  let cw, ch;
-  if (imgAr > ar) {
-    ch = meta.height;
-    cw = Math.round(meta.height * ar);
+  const face = await detectFace(working);
+  let cw, ch, left, top;
+  if (face && face.w > 0) {
+    // ---- face-aware crop: face ko passport composition me rakhna ----
+    // face height ~55% of crop, headroom ~9% (head kabhi na kate)
+    const FACE_RATIO = 0.55;
+    const HEADROOM = 0.09;
+    let fc = face.h / FACE_RATIO;
+    let fw = fc * ar;
+    if (fw > meta.width) { fw = meta.width; fc = fw / ar; }
+    if (fc > meta.height) { fc = meta.height; fw = fc * ar; }
+    let l = face.x + face.w / 2 - fw / 2; // horizontally face pe center
+    let t = face.y - HEADROOM * fc;        // head ke upar thodi jagah
+    if (l < 0) l = 0;
+    if (l + fw > meta.width) l = meta.width - fw;
+    if (t < 0) t = 0;
+    if (t + fc > meta.height) t = meta.height - fc;
+    cw = Math.round(fw); ch = Math.round(fc);
+    left = Math.round(l); top = Math.round(t);
   } else {
-    cw = meta.width;
-    ch = Math.round(meta.width / ar);
+    // ---- fallback: center crop (face nahi mila) ----
+    const imgAr = meta.width / meta.height;
+    if (imgAr > ar) {
+      ch = meta.height;
+      cw = Math.round(meta.height * ar);
+    } else {
+      cw = meta.width;
+      ch = Math.round(meta.width / ar);
+    }
+    left = Math.round((meta.width - cw) / 2);
+    top = Math.round((meta.height - ch) / 2);
   }
-  const left = Math.round((meta.width - cw) / 2);
-  const top = Math.round((meta.height - ch) / 2);
   const photo = await sharp(working)
     .extract({ left, top, width: cw, height: ch })
     .resize(cellPxW, cellPxH, { fit: 'fill' })
