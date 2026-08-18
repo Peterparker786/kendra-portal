@@ -526,7 +526,13 @@ function buildResume() {
     })
     .then((data) => {
       resumeMarkdown = data.markdown;
-      $('#resumePreview').innerHTML = mdToHtml(resumeMarkdown);
+      const pv = $('#resumePreview');
+      pv.className = `resume-preview tpl-${selectedTemplate.id}`;
+      let body = mdToHtml(resumeMarkdown);
+      if (selectedTemplate.layout === 'sidebar') {
+        body = `<div class="tpl-side" style="background:${selectedTemplate.accent}"></div><div class="tpl-body">${body}</div>`;
+      }
+      pv.innerHTML = body;
       $('#resumeDownloadBtn').disabled = false;
       $('#resumePrintBtn').disabled = false;
       st.textContent = data.usedAI
@@ -632,6 +638,92 @@ function mdToHtml(md) {
   return html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
 }
 
+const RESUME_TEMPLATES = [
+  { id: 'monochrome', name: 'Monochrome', cat: 'Professional', accent: '#111827', layout: 'single' },
+  { id: 'navy', name: 'Professional Navy', cat: 'Professional', accent: '#1e3a8a', layout: 'single' },
+  { id: 'modern', name: 'Modern Blue', cat: 'Modern', accent: '#2563eb', layout: 'bars' },
+  { id: 'gradient', name: 'Gradient', cat: 'Modern', accent: '#4f46e5', layout: 'gradient' },
+  { id: 'green-side', name: 'Two-Column Green', cat: 'Two-column', accent: '#004d40', layout: 'sidebar' },
+  { id: 'navy-side', name: 'Sidebar Navy', cat: 'Two-column', accent: '#1e293b', layout: 'sidebar' },
+  { id: 'simple', name: 'Simple', cat: 'Simple', accent: '#64748b', layout: 'single' },
+  { id: 'minimal', name: 'Minimal', cat: 'Simple', accent: '#9ca3af', layout: 'minimal' },
+  { id: 'elegant', name: 'Elegant Gold', cat: 'Elegant', accent: '#b45309', layout: 'serif' },
+];
+const TEMPLATE_FILTERS = ['All templates', 'Simple', 'Professional', 'Two-column', 'Modern', 'Elegant'];
+let selectedTemplate = RESUME_TEMPLATES[2]; // default: Modern Blue
+
+function miniPreview(t) {
+  const inner =
+    `<div class="mini-name">Customer Name</div>
+    <div class="mini-bar"></div>
+    <div class="mini-line"></div>
+    <div class="mini-line"></div>
+    <div class="mini-line d"></div>
+    <div class="mini-bar w"></div>
+    <div class="mini-line"></div>
+    <div class="mini-line d"></div>`;
+  if (t.layout === 'sidebar') {
+    return `<div class="tpl-mini side" style="--accent:${t.accent}"><div class="mini-side" style="background:${t.accent}"></div><div class="mini-body">${inner}</div></div>`;
+  }
+  return `<div class="tpl-mini" style="--accent:${t.accent}"><div class="mini-body">${inner}</div></div>`;
+}
+
+function renderTemplates(filter) {
+  const grid = $('#tplGrid');
+  const list = filter === 'All templates' ? RESUME_TEMPLATES : RESUME_TEMPLATES.filter((t) => t.cat === filter);
+  grid.innerHTML = list
+    .map(
+      (t) => `<div class="tpl-card" data-id="${t.id}">
+        ${miniPreview(t)}
+        <div class="tpl-card-foot"><span class="tpl-name">${esc(t.name)}</span><span class="tpl-cat">${esc(t.cat)}</span></div>
+        <button class="btn primary sm tpl-use" type="button">Use template</button>
+      </div>`
+    )
+    .join('');
+  grid.querySelectorAll('.tpl-card').forEach((card) => {
+    card.addEventListener('click', () => {
+      const t = RESUME_TEMPLATES.find((x) => x.id === card.dataset.id);
+      if (t) selectTemplate(t);
+    });
+  });
+}
+
+function renderTplFilters() {
+  const f = $('#tplFilters');
+  f.innerHTML = TEMPLATE_FILTERS.map(
+    (x) => `<button class="tpl-pill${x === 'All templates' ? ' active' : ''}" data-f="${esc(x)}" type="button">${esc(x)}</button>`
+  ).join('');
+  f.querySelectorAll('.tpl-pill').forEach((b) => {
+    b.addEventListener('click', () => {
+      f.querySelectorAll('.tpl-pill').forEach((p) => p.classList.remove('active'));
+      b.classList.add('active');
+      renderTemplates(b.dataset.f);
+    });
+  });
+}
+
+function showResumeForm() {
+  $('#resumeHero').hidden = true;
+  $('#resumeTemplates').hidden = true;
+  $('#resumeFormWrap').hidden = false;
+  $('#resumeFormWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function selectTemplate(t) {
+  selectedTemplate = t;
+  $('#tplSelectedBadge').textContent = `Template: ${t.name}`;
+  $('#tplSelectedBadge').style.color = t.accent;
+  showResumeForm();
+}
+
+function openTemplatePage() {
+  $('#resumeHero').hidden = true;
+  $('#resumeTemplates').hidden = false;
+  renderTplFilters();
+  renderTemplates('All templates');
+  $('#resumeTemplates').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 let resumeCountDone = false;
 
 function animateResumeCount() {
@@ -657,9 +749,13 @@ function openResumePage() {
 
 function wireResume() {
   $('#resumeBtn').addEventListener('click', openResumePage);
-  $('#rsCreateBtn').addEventListener('click', () => {
-    $('#resumeFormWrap').hidden = false;
-    $('#resumeFormWrap').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  $('#rsCreateBtn').addEventListener('click', openTemplatePage);
+  $('#rsCreateBtn2').addEventListener('click', () => selectTemplate(RESUME_TEMPLATES[2]));
+  $('#rsUploadBtn2').addEventListener('click', () => $('#rsUploadInput').click());
+  $('#tplBackBtn').addEventListener('click', () => {
+    $('#resumeTemplates').hidden = true;
+    $('#resumeHero').hidden = false;
+    $('#resumeHero').scrollIntoView({ behavior: 'smooth', block: 'start' });
   });
   $('#rsUploadBtn').addEventListener('click', () => $('#rsUploadInput').click());
   $('#rsUploadInput').addEventListener('change', (e) => {

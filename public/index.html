@@ -235,7 +235,7 @@
 
         <!-- ============ RESUME MAKER (landing page) ============ -->
         <section class="card resume-page" id="resumePage" hidden>
-          <div class="resume-hero">
+          <div class="resume-hero" id="resumeHero">
             <div class="resume-hero-left">
               <h1 class="resume-h1">Ye resume builder<br />aapko <span class="blue">aage le jayega</span><span class="caret">|</span></h1>
               <p class="resume-sub">Sirf 2% resumes jeet te hain. Aapka unme se hoga.</p>
@@ -268,9 +268,25 @@
 
           <div class="resume-counter">⚡ <b id="resumeCount">0</b> resumes aaj banaye gaye</div>
 
+          <!-- ===== TEMPLATE SELECTION PAGE ===== -->
+          <div id="resumeTemplates" hidden>
+            <div class="tpl-head">
+              <h1 class="tpl-heading">Har resume template unhi rules pe bana hai jo aapko <span class="blue">job dilane</span> ke liye chahiye.<br />Use our resume templates aur pao <b>18 aur career tools</b>!</h1>
+              <div class="tpl-btns">
+                <button class="btn primary big" id="rsCreateBtn2">✨ Create my resume</button>
+                <button class="btn big" id="rsUploadBtn2">📤 Upload my resume</button>
+              </div>
+              <div class="tpl-filters" id="tplFilters"></div>
+            </div>
+            <div class="tpl-grid" id="tplGrid"></div>
+            <div class="tpl-back">
+              <button class="btn ghost sm" id="tplBackBtn">← Wapas (landing page)</button>
+            </div>
+          </div>
+
           <div id="resumeFormWrap" hidden>
             <div class="resume-form-head">
-              <h2>📝 Customer ki details bharo</h2>
+              <h2>📝 Customer ki details bharo <span class="tpl-selected" id="tplSelectedBadge"></span></h2>
               <p class="hint">Details bharo → <b>AI se Resume banao</b> dabao → professional resume tayyar! ⬇ Download ya 🖨 Print kar sakte ho.</p>
             </div>
             <div class="resume-grid">
