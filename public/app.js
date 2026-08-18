@@ -490,6 +490,38 @@ function renderDonut(byType, total) {
 let resumeMarkdown = '';
 let resumePhoto = ''; // optional photo (dataURL) — premium templates me dikhti hai
 
+// Font choices — premium templates me bhi alag font laga sakte ho
+const RESUME_FONTS = [
+  { id: 'default', name: 'Default', family: '' },
+  { id: 'arial', name: 'Clean', family: "Arial, 'Segoe UI', sans-serif" },
+  { id: 'georgia', name: 'Serif', family: "Georgia, 'Times New Roman', serif" },
+  { id: 'trebuchet', name: 'Modern', family: "'Trebuchet MS', Verdana, sans-serif" },
+  { id: 'courier', name: 'Mono', family: "'Courier New', monospace" },
+];
+let resumeFont = ''; // '' = template ka default font
+
+function applyResumeFont(pv) {
+  if (!pv) return;
+  pv.style.fontFamily = resumeFont || '';
+}
+
+function renderFontRow() {
+  const row = document.getElementById('resumeFontRow');
+  if (!row) return;
+  row.innerHTML = RESUME_FONTS.map(
+    (f) => `<button class="font-pill${resumeFont === f.family ? ' active' : ''}" data-fam="${esc(f.family)}" type="button" title="${esc(f.name)}" style="font-family:${f.family || 'inherit'}">Aa <span>${esc(f.name)}</span></button>`
+  ).join('');
+  row.querySelectorAll('.font-pill').forEach((b) => {
+    b.addEventListener('click', () => {
+      resumeFont = b.dataset.fam;
+      row.querySelectorAll('.font-pill').forEach((x) => x.classList.toggle('active', x === b));
+      // preview me font turant lagaao (AI resume bana ho ya live form)
+      if (resumeMarkdown) renderMarkdownPreview(selectedTemplate);
+      else liveResumePreview();
+    });
+  });
+}
+
 // Sample data — templates pehle se filled dikhte hain taaki pata chale kaise lagega
 const SAMPLE_RESUME = {
   name: 'Ramesh Kumar',
@@ -527,6 +559,7 @@ function updateResumeScore() {
 function liveResumePreview() {
   const pv = document.getElementById('resumePreview');
   if (!pv) return;
+  applyResumeFont(pv);
   const t = selectedTemplate;
   if (['split', 'band', 'student', 'classic'].includes(t.layout)) {
     renderPremium(t);
@@ -613,6 +646,7 @@ function renderPremium(t) {
 
 function renderPremiumWith(t, pv, d, isSample) {
   if (!pv) return;
+  applyResumeFont(pv);
   const { name, title, email, phone, addr, objective, education, skills, experience } = d;
   const badge = isSample ? '<div class="lp-sample-badge">👀 Sample preview — apni details bharte hi aapka dikhega</div>' : '';
 
@@ -729,6 +763,7 @@ function mdToPremiumData(md) {
 function renderMarkdownPreview(t) {
   const pv = document.getElementById('resumePreview');
   if (!pv) return;
+  applyResumeFont(pv);
   if (['split', 'band', 'student', 'classic'].includes(t.layout)) {
     renderPremiumWith(t, pv, mdToPremiumData(resumeMarkdown));
     return;
@@ -1119,6 +1154,7 @@ function selectTemplate(t) {
 function renderCustomizeGrid() {
   const grid = $('#resumeTplGrid');
   if (!grid) return;
+  renderFontRow();
   grid.innerHTML = RESUME_TEMPLATES.map((t) => {
     const sel = selectedTemplate.id === t.id ? ' selected' : '';
     const inner =
