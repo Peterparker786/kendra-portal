@@ -1951,6 +1951,50 @@ function resizeDoc(file) {
     .catch((err) => toast(err.message, 'err'));
 }
 
+// ---------------------------------------------------------------- AI background removal (client-side, imgly ISNet model)
+
+let bgRemovalMod = null;
+async function getBgRemoval() {
+  if (bgRemovalMod) return bgRemovalMod;
+  bgRemovalMod = await import('/vendor/imgly-bg-removal.mjs');
+  return bgRemovalMod;
+}
+
+// Photo ka asli background AI se hatakar solid color pe composite karo.
+// Returns: processed JPEG Blob (transparent PNG + solid color fill).
+async function aiReplaceBackground(file, hex, onProgress) {
+  const mod = await getBgRemoval();
+  const blob = await mod.removeBackground(file, {
+    device: 'cpu',
+    output: { format: 'image/png' },
+    fetchArgs: { cache: 'force-cache' }, // model/onnx files browser cache me reh jayein (har baar download na ho)
+    progress: (key, cur, total) => {
+      if (onProgress && total > 0) onProgress(Math.min(97, Math.round((cur / total) * 100)));
+    },
+  });
+  const img = await createImageBitmap(blob);
+  const canvas = document.createElement('canvas');
+  canvas.width = img.width;
+  canvas.height = img.height;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = hex;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(img, 0, 0);
+  const out = await new Promise((res) => canvas.toBlob(res, 'image/jpeg', 0.92));
+  return out;
+}
+
+function setPassportProg(pct, label) {
+  const wrap = $('#passportProgress');
+  if (!wrap) return;
+  wrap.hidden = false;
+  const p = Math.max(1, Math.min(100, pct || 2));
+  $('#ppProgFill').style.width = p + '%';
+  $('#ppProgLabel').textContent = label || 'Kaam chal raha hai…';
+  const pctEl = $('#ppProgPct');
+  if (pctEl) pctEl.textContent = p < 100 ? p + '%' : '✅';
+}
+
 // ---------------------------------------------------------------- passport photo maker
 
 let passportFile = null;
@@ -1990,45 +2034,56 @@ function wirePassport() {
     makeBtn.disabled = false;
     $('#passportResult').hidden = true;
   });
-  makeBtn.addEventListener('click', () => {
+  makeBtn.addEventListener('click', async () => {
     if (!passportFile) return;
     const size = (document.querySelector('input[name="psize"]:checked') || {}).value || '2x2';
     const count = parseInt($('#passportCount').value, 10) || 8;
-    makeBtn.disabled = true;
-    toast('A4 sheet bana rahe hain…');
-    const fd = new FormData();
-    fd.append('file', passportFile);
-    fd.append('size', size);
-    fd.append('count', String(count));
     let bg = (document.querySelector('input[name="pbg"]:checked') || {}).value || '';
     if (bg === 'custom') bg = $('#customBgColor').value;
-    fd.append('bg', bg);
-    fetch('/api/passport', { method: 'POST', body: fd })
-      .then(async (r) => {
-        const d = await r.json();
-        if (!r.ok) throw new Error(d.error || 'Failed');
-        return d;
-      })
-      .then((d) => {
-        passportPdfUrl = d.dataUrl;
-        $('#passportPerSheet').textContent = d.perSheet;
-        $('#passportPages').textContent = d.pages;
-        $('#passportSizeLabel').textContent = d.sizeLabel;
-        const img = $('#passportPreview');
-        if (d.preview) {
-          img.src = d.preview;
-          $('#passportPreviewWrap').hidden = false;
-        } else {
-          $('#passportPreviewWrap').hidden = true;
-        }
-        $('#passportResult').hidden = false;
-        $('#passportResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        toast(`Ho gaya! ${d.count} photos, ${d.pages} A4 page` + (d.pages > 1 ? 's' : ''));
-      })
-      .catch((err) => toast(err.message, 'err'))
-      .finally(() => {
-        makeBtn.disabled = false;
-      });
+    makeBtn.disabled = true;
+    $('#passportResult').hidden = true;
+    toast('A4 sheet bana rahe hain…');
+    try {
+      let file = passportFile;
+      if (bg && /^#[0-9a-f]{6}$/i.test(bg)) {
+        // AI se asli background hatakar solid color laga do
+        setPassportProg(2, '🧠 AI background hata raha hai… (pehli baar ~15-30 sec, model download ho raha hai)');
+        file = await aiReplaceBackground(passportFile, bg, (p) => {
+          setPassportProg(p, '🧠 AI background hata raha hai…');
+        });
+        bg = ''; // background ab photo me hi laga hua hai
+      }
+      setPassportProg(98, '📄 A4 sheet bana rahe hain…');
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('size', size);
+      fd.append('count', String(count));
+      fd.append('bg', bg);
+      const r = await fetch('/api/passport', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Failed');
+      passportPdfUrl = d.dataUrl;
+      $('#passportPerSheet').textContent = d.perSheet;
+      $('#passportPages').textContent = d.pages;
+      $('#passportSizeLabel').textContent = d.sizeLabel;
+      const img = $('#passportPreview');
+      if (d.preview) {
+        img.src = d.preview;
+        $('#passportPreviewWrap').hidden = false;
+      } else {
+        $('#passportPreviewWrap').hidden = true;
+      }
+      setPassportProg(100, '✅ Ho gaya!');
+      setTimeout(() => { $('#passportProgress').hidden = true; }, 900);
+      $('#passportResult').hidden = false;
+      $('#passportResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      toast(`Ho gaya! ${d.count} photos, ${d.pages} A4 page` + (d.pages > 1 ? 's' : ''));
+    } catch (err) {
+      $('#passportProgress').hidden = true;
+      toast(err.message || 'Background hatane me problem aayi', 'err');
+    } finally {
+      makeBtn.disabled = false;
+    }
   });
   $('#passportDownloadBtn').addEventListener('click', () => {
     if (!passportPdfUrl) return;

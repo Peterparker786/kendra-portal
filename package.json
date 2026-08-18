@@ -13,6 +13,7 @@
     "make-sample": "node scripts/make-sample-pdf.js && node scripts/make-sample-image.js"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
     "express": "^4.21.2",
     "html-to-image": "^1.11.11",
     "multer": "^2.0.1",

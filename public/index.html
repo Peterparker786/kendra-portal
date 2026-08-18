@@ -6,6 +6,14 @@
   <title>Mishra Computers Dashboard — Client Documents</title>
   <link rel="stylesheet" href="style.css" />
   <link rel="stylesheet" href="dashboard.css" />
+  <script type="importmap">
+    {
+      "imports": {
+        "onnxruntime-web": "/vendor/onnxruntime-web.mjs",
+        "onnxruntime-web/webgpu": "/vendor/onnxruntime-webgpu.mjs"
+      }
+    }
+  </script>
 </head>
 <body>
   <div class="app">
@@ -499,6 +507,8 @@
             <label class="swatch" title="Light Blue"><input type="radio" name="pbg" value="#a9d0f5" /><span class="swatch-box" style="background:#a9d0f5"></span></label>
             <label class="swatch" title="Grey"><input type="radio" name="pbg" value="#d3d3d3" /><span class="swatch-box" style="background:#d3d3d3"></span></label>
             <label class="swatch" title="Red"><input type="radio" name="pbg" value="#e53935" /><span class="swatch-box" style="background:#e53935"></span></label>
+            <label class="swatch" title="Green"><input type="radio" name="pbg" value="#4caf50" /><span class="swatch-box" style="background:#4caf50"></span></label>
+            <label class="swatch" title="Dark Green"><input type="radio" name="pbg" value="#2e7d32" /><span class="swatch-box" style="background:#2e7d32"></span></label>
             <label class="swatch custom" title="Custom color"><input type="radio" name="pbg" value="custom" /><span class="swatch-box" id="customBgSwatch" style="background:#4caf50"></span></label>
             <input type="color" id="customBgColor" value="#4caf50" style="width:34px;height:34px;border:none;background:none;cursor:pointer" title="Custom color chuno" />
           </div>
@@ -507,6 +517,10 @@
       </div>
       <div style="margin-top:12px">
         <button class="btn primary big" id="passportMakeBtn" disabled>🖨 Sheet banao</button>
+      </div>
+      <div class="resume-progress" id="passportProgress" hidden>
+        <div class="rs-prog-track"><div class="rs-prog-fill" id="ppProgFill"></div></div>
+        <div class="rs-prog-row"><span id="ppProgLabel">Kaam chal raha hai…</span><b id="ppProgPct"></b></div>
       </div>
       <div id="passportResult" hidden style="margin-top:14px">
         <div class="resizer-stats">
