@@ -103,7 +103,9 @@ export async function makePassportSheet(buffer, opts = {}) {
   };
 }
 
-/** Photo ke background ko solid color se replace karo (edge flood-fill) */
+/** Photo ke background ko solid color se replace karo.
+ *  Robust version: corner-patch sampling + gradient-tolerant flood fill + retry.
+ *  Real photos (uneven wall lighting, subject touching edges) pe bhi kaam karta hai. */
 async function replaceBackground(buffer, hex) {
   const target = [
     parseInt(hex.slice(1, 3), 16),
@@ -118,44 +120,84 @@ async function replaceBackground(buffer, hex) {
   const h = info.height;
   const total = w * h;
 
-  // background ka reference color = border pixels ka average
-  let sr = 0, sg = 0, sb = 0, n = 0;
-  for (let x = 0; x < w; x++) {
-    sr += data[x * 3]; sg += data[x * 3 + 1]; sb += data[x * 3 + 2]; n++;
-    const j = (h - 1) * w + x;
-    sr += data[j * 3]; sg += data[j * 3 + 1]; sb += data[j * 3 + 2]; n++;
+  // ---- reference background color: 4 corners me se sabse uniform patch ----
+  // (subject ke kandhe/baal edge tak touch karein to bhi ref sahi milta hai)
+  const patch = Math.max(8, Math.round(Math.min(w, h) * 0.05));
+  const corners = [];
+  for (const [cx, cy] of [[0, 0], [w - patch, 0], [0, h - patch], [w - patch, h - patch]]) {
+    let r = 0, g = 0, b = 0, n = 0;
+    const vals = [];
+    for (let y = cy; y < cy + patch; y++) {
+      for (let x = cx; x < cx + patch; x++) {
+        const i = (y * w + x) * 3;
+        r += data[i]; g += data[i + 1]; b += data[i + 2];
+        vals.push(data[i], data[i + 1], data[i + 2]);
+        n++;
+      }
+    }
+    const mr = r / n, mg = g / n, mb = b / n;
+    let v = 0;
+    for (let k = 0; k < vals.length; k += 3) {
+      v += (vals[k] - mr) ** 2 + (vals[k + 1] - mg) ** 2 + (vals[k + 2] - mb) ** 2;
+    }
+    corners.push({ r: mr, g: mg, b: mb, std: Math.sqrt(v / (n * 3)) });
   }
-  for (let y = 1; y < h - 1; y++) {
-    const a = y * w, b2 = y * w + w - 1;
-    sr += data[a * 3]; sg += data[a * 3 + 1]; sb += data[a * 3 + 2]; n++;
-    sr += data[b2 * 3]; sg += data[b2 * 3 + 1]; sb += data[b2 * 3 + 2]; n++;
-  }
-  const br = sr / n, bgc = sg / n, bb = sb / n;
-  const tol = 30;
-  const isBg = (i) =>
-    Math.abs(data[i * 3] - br) <= tol &&
-    Math.abs(data[i * 3 + 1] - bgc) <= tol &&
-    Math.abs(data[i * 3 + 2] - bb) <= tol;
+  corners.sort((a, b) => a.std - b.std);
+  const ref = corners[0];
 
-  // edges se flood-fill karke background mask banao
-  const visited = new Uint8Array(total);
-  const stack = [];
-  const tryPush = (i) => { if (!visited[i]) { visited[i] = 1; stack.push(i); } };
-  for (let x = 0; x < w; x++) { tryPush(x); tryPush((h - 1) * w + x); }
-  for (let y = 1; y < h - 1; y++) { tryPush(y * w); tryPush(y * w + w - 1); }
-  const mask = new Uint8Array(total);
-  while (stack.length) {
-    const i = stack.pop();
-    if (!isBg(i)) continue;
-    mask[i] = 1;
-    const x = i % w;
-    if (x > 0) tryPush(i - 1);
-    if (x < w - 1) tryPush(i + 1);
-    if (i >= w) tryPush(i - w);
-    if (i < total - w) tryPush(i + w);
+  // brightness-relative tolerance (dark wall pe kam, bright pe zyada)
+  const lum = 0.299 * ref.r + 0.587 * ref.g + 0.114 * ref.b;
+  const tol = Math.max(28, Math.min(64, lum * 0.22));
+
+  const dist = (i, rr, gg, bb) =>
+    Math.abs(data[i * 3] - rr) + Math.abs(data[i * 3 + 1] - gg) + Math.abs(data[i * 3 + 2] - bb);
+
+  // ---- flood fill: parent-chain comparison se gradient wall bhi cover hoti hai ----
+  // (har pixel ko ref se + apne parent se check karte hain, total drift bounded)
+  function floodFill(t, tStep, tMax) {
+    const mask = new Uint8Array(total);
+    const parent = new Int32Array(total).fill(-1);
+    const queue = [];
+    const push = (i, p) => { if (parent[i] === -1) { parent[i] = p; queue.push(i); } };
+    for (let x = 0; x < w; x++) { push(x, -1); push((h - 1) * w + x, -1); }
+    for (let y = 1; y < h - 1; y++) { push(y * w, -1); push(y * w + w - 1, -1); }
+    while (queue.length) {
+      const i = queue.pop();
+      const p = parent[i];
+      if (p === -1) {
+        if (dist(i, ref.r, ref.g, ref.b) > t * 1.4) continue; // seed filter
+      } else {
+        const dRef = dist(i, ref.r, ref.g, ref.b);
+        const dPar = dist(i, data[p * 3], data[p * 3 + 1], data[p * 3 + 2]);
+        if (dRef > tMax || dPar > tStep) continue;
+      }
+      mask[i] = 1;
+      const x = i % w;
+      if (x > 0) push(i - 1, i);
+      if (x < w - 1) push(i + 1, i);
+      if (i >= w) push(i - w, i);
+      if (i < total - w) push(i + w, i);
+    }
+    return mask;
   }
 
-  // apply: background -> target color, edges pe 1px feather (smooth transition)
+  let mask = floodFill(tol, tol * 0.6, tol * 3);
+  let filled = 0;
+  for (let i = 0; i < total; i++) filled += mask[i];
+  let coverage = filled / total;
+
+  // kam coverage -> looser parameters ke saath retry
+  if (coverage < 0.18) {
+    mask = floodFill(tol * 1.55, tol * 1.0, tol * 4.2);
+    filled = 0;
+    for (let i = 0; i < total; i++) filled += mask[i];
+    coverage = filled / total;
+  }
+
+  // abhi bhi detect nahi hua -> original photo hi return (subject kharab na ho)
+  if (coverage < 0.06) return buffer;
+
+  // ---- apply: background -> target color, edges pe 1px feather ----
   const out = Buffer.from(data);
   for (let i = 0; i < total; i++) {
     if (mask[i]) {
