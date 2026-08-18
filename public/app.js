@@ -642,15 +642,37 @@ function resumePageHtml(name, md) {
     `ul{margin:6px 0;padding-left:22px}@media print{body{margin:0;max-width:none}}</style></head><body>${body}</body></html>`;
 }
 
-function downloadResume() {
+async function downloadResume() {
   if (!resumeMarkdown) return;
   const name = ($('#rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '');
-  const blob = new Blob([resumePageHtml(name, resumeMarkdown)], { type: 'text/html;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `resume-${name}.html`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+  const btn = $('#resumeDownloadBtn');
+  const old = btn.innerHTML;
+  btn.disabled = true;
+  btn.textContent = '⏳ PDF bana raha hai…';
+  try {
+    const res = await fetch('/api/resume/pdf', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ markdown: resumeMarkdown, accent: selectedTemplate.accent }),
+    });
+    if (!res.ok) {
+      const e = await res.json().catch(() => ({}));
+      throw new Error(e.error || 'PDF fail');
+    }
+    const blob = await res.blob();
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `resume-${name}.pdf`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+    toast('PDF download ho gaya! 📄');
+  } catch (err) {
+    console.error(err);
+    toast('PDF bana me error: ' + err.message, 'err');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = old;
+  }
 }
 
 function printResume() {

@@ -7,6 +7,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument, extractRawText } from './extract.js';
 import { aiBuildResume, aiParseResume } from './ai.js';
+import { buildResumePdf } from './resumepdf.js';
 import { resizeDocument } from './resize.js';
 import { makePassportSheet } from './passport.js';
 import * as store from './db.js';
@@ -157,6 +158,22 @@ app.post('/api/resume', async (req, res, next) => {
     const d = req.body || {};
     const md = await aiBuildResume(d);
     res.json(md ? { ok: true, markdown: md, usedAI: true } : { ok: true, markdown: resumeTemplate(d), usedAI: false });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// resume markdown -> PDF download (server-side pdf-lib)
+app.post('/api/resume/pdf', async (req, res, next) => {
+  try {
+    const { markdown, accent } = req.body || {};
+    if (!markdown || !String(markdown).trim()) {
+      return res.status(400).json({ error: 'Resume markdown missing' });
+    }
+    const buf = await buildResumePdf(markdown, accent);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', 'attachment; filename="resume.pdf"');
+    res.send(buf);
   } catch (err) {
     next(err);
   }

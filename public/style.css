@@ -1213,9 +1213,9 @@ body {
 .lp-line { font-size: 13px; line-height: 1.5; color: #334155; padding: 2px 0; }
 .lp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .lp-chip {
-  font-size: 12px; font-weight: 600; color: var(--accent, #2563eb);
-  background: color-mix(in srgb, var(--accent, #2563eb) 10%, #fff);
-  border: 1px solid color-mix(in srgb, var(--accent, #2563eb) 35%, #fff);
+  font-size: 12px; font-weight: 600; color: #1d4ed8;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
   border-radius: 999px; padding: 3px 11px;
 }
 .lp-empty { color: #94a3b8; font-size: 13px; text-align: center; padding: 18px 0; }
