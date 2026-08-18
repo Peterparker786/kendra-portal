@@ -6,6 +6,7 @@ import multer from 'multer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument } from './extract.js';
+import { aiBuildResume } from './ai.js';
 import { resizeDocument } from './resize.js';
 import { makePassportSheet } from './passport.js';
 import * as store from './db.js';
@@ -149,6 +150,54 @@ const DOC_TYPES = [
 app.get('/api/settings', (_req, res) => {
   res.json({ sheetUrl: GOOGLE_SHEET_URL || '' });
 });
+
+// ---- resume maker: AI se professional resume (template fallback ke saath) ----
+app.post('/api/resume', async (req, res, next) => {
+  try {
+    const d = req.body || {};
+    const md = await aiBuildResume(d);
+    res.json(md ? { ok: true, markdown: md, usedAI: true } : { ok: true, markdown: resumeTemplate(d), usedAI: false });
+  } catch (err) {
+    next(err);
+  }
+});
+
+function resumeTemplate(d) {
+  const L = [];
+  const name = String(d.name || '').trim() || 'Customer Name';
+  L.push(`# ${name}`);
+  const contact = [d.phone, d.email, d.address].filter(Boolean).join(' | ');
+  if (contact) L.push(contact);
+  L.push('');
+  if (d.objective) {
+    L.push('## Summary');
+    L.push(d.objective.trim());
+    L.push('');
+  }
+  if (d.education) {
+    L.push('## Education');
+    String(d.education).split(/\n+/).map((s) => s.trim()).filter(Boolean)
+      .forEach((s) => L.push(`- ${s}`));
+    L.push('');
+  }
+  if (d.skills) {
+    L.push('## Skills');
+    L.push(String(d.skills).split(',').map((s) => s.trim()).filter(Boolean).join(', '));
+    L.push('');
+  }
+  if (d.experience) {
+    L.push('## Experience');
+    String(d.experience).split(/\n+/).map((s) => s.trim()).filter(Boolean)
+      .forEach((s) => L.push(`- ${s}`));
+    L.push('');
+  }
+  const extra = [d.dob ? `Date of Birth: ${d.dob}` : '', d.father ? `Father's Name: ${d.father}` : ''].filter(Boolean);
+  if (extra.length) {
+    L.push('## Additional Info');
+    extra.forEach((s) => L.push(`- ${s}`));
+  }
+  return L.join('\n').trim();
+}
 
 app.get('/api/stats', (_req, res, next) => {
   try {

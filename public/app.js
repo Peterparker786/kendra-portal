@@ -485,6 +485,169 @@ function renderDonut(byType, total) {
   legend.innerHTML = rows.join('');
 }
 
+// ---------------------------------------------------------------- resume maker
+
+let resumeMarkdown = '';
+
+function collectResumeDetails() {
+  return {
+    name: $('#rsName').value.trim(),
+    phone: $('#rsPhone').value.trim(),
+    email: $('#rsEmail').value.trim(),
+    address: $('#rsAddress').value.trim(),
+    dob: $('#rsDob').value.trim(),
+    father: $('#rsFather').value.trim(),
+    objective: $('#rsObjective').value.trim(),
+    education: $('#rsEducation').value.trim(),
+    skills: $('#rsSkills').value.trim(),
+    experience: $('#rsExperience').value.trim(),
+  };
+}
+
+function buildResume() {
+  const d = collectResumeDetails();
+  if (!d.name) {
+    toast('Customer Name likho', 'err');
+    return;
+  }
+  $('#resumeMakeBtn').disabled = true;
+  const st = $('#resumeStatus');
+  st.hidden = false;
+  st.textContent = 'AI resume bana raha hai… (10-20 sec lag sakte hain)';
+  fetch('/api/resume', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(d),
+  })
+    .then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Resume fail');
+      return data;
+    })
+    .then((data) => {
+      resumeMarkdown = data.markdown;
+      $('#resumePreview').innerHTML = mdToHtml(resumeMarkdown);
+      $('#resumeDownloadBtn').disabled = false;
+      $('#resumePrintBtn').disabled = false;
+      st.textContent = data.usedAI
+        ? '✅ AI se resume ban gaya! Download ya Print karo.'
+        : '⚠️ AI key configure nahi hai — template se banaya (AI lagne ke baad aur acha banega).';
+      toast('Resume ban gaya!');
+    })
+    .catch((err) => {
+      st.textContent = 'Error: ' + err.message;
+      toast(err.message, 'err');
+    })
+    .finally(() => {
+      $('#resumeMakeBtn').disabled = false;
+    });
+}
+
+function resumePageHtml(name, md) {
+  const body = mdToHtml(md);
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(name)} — Resume</title>` +
+    `<style>body{font-family:'Segoe UI',Arial,sans-serif;max-width:760px;margin:30px auto;padding:0 22px;color:#1e293b;line-height:1.5}` +
+    `h1{font-size:26px;margin:0 0 2px}h2{font-size:16px;color:#4f46e5;border-bottom:2px solid #4f46e5;padding-bottom:4px;margin:22px 0 8px}` +
+    `ul{margin:6px 0;padding-left:22px}@media print{body{margin:0;max-width:none}}</style></head><body>${body}</body></html>`;
+}
+
+function downloadResume() {
+  if (!resumeMarkdown) return;
+  const name = ($('#rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '');
+  const blob = new Blob([resumePageHtml(name, resumeMarkdown)], { type: 'text/html;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `resume-${name}.html`;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 4000);
+}
+
+function printResume() {
+  if (!resumeMarkdown) return;
+  const name = ($('#rsName').value.trim() || 'resume').replace(/[^A-Za-z0-9 _-]/g, '');
+  const w = window.open('', '_blank');
+  if (!w) {
+    toast('Popup blocker on hai — is site ko allow karo', 'err');
+    return;
+  }
+  w.document.write(resumePageHtml(name, resumeMarkdown));
+  w.document.close();
+  w.focus();
+  setTimeout(() => w.print(), 400);
+}
+
+function fillFromCustomer() {
+  const id = state.selectedId;
+  if (!id) {
+    toast('Pehle kisi customer ko profile me kholo (naam pe click)', 'err');
+    return;
+  }
+  fetch(`/api/customers/${id}`)
+    .then((r) => r.json())
+    .then((c) => {
+      if (!c || !c.name) throw new Error('Customer nahi mila');
+      $('#rsName').value = c.name || '';
+      $('#rsPhone').value = c.phone || '';
+      $('#rsAddress').value = c.address || '';
+      $('#rsDob').value = c.dob || '';
+      $('#rsFather').value = c.father || '';
+      toast(`"${c.name}" ki details bhar di`);
+    })
+    .catch((err) => toast(err.message, 'err'));
+}
+
+function mdToHtml(md) {
+  const escTxt = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const lines = String(md).split('\n');
+  let html = '';
+  let inList = false;
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line || line.startsWith('```')) {
+      if (inList) { html += '</ul>'; inList = false; }
+      continue;
+    }
+    if (/^-{3,}$/.test(line)) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<hr />';
+      continue;
+    }
+    const h = line.match(/^(#{1,3})\s+(.*)/);
+    if (h) {
+      if (inList) { html += '</ul>'; inList = false; }
+      const lvl = Math.min(6, h[1].length + 1);
+      html += `<h${lvl}>${escTxt(h[2])}</h${lvl}>`;
+      continue;
+    }
+    const li = line.match(/^[-*]\s+(.*)/);
+    if (li) {
+      if (!inList) { html += '<ul>'; inList = true; }
+      html += `<li>${escTxt(li[1])}</li>`;
+      continue;
+    }
+    if (inList) { html += '</ul>'; inList = false; }
+    html += `<p>${escTxt(line)}</p>`;
+  }
+  if (inList) html += '</ul>';
+  return html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
+
+function wireResume() {
+  $('#resumeBtn').addEventListener('click', () => {
+    $('#resumeModal').hidden = false;
+  });
+  $('#resumeClose').addEventListener('click', () => {
+    $('#resumeModal').hidden = true;
+  });
+  $('#resumeModal').addEventListener('click', (e) => {
+    if (e.target === $('#resumeModal')) $('#resumeModal').hidden = true;
+  });
+  $('#resumeMakeBtn').addEventListener('click', buildResume);
+  $('#resumeDownloadBtn').addEventListener('click', downloadResume);
+  $('#resumePrintBtn').addEventListener('click', printResume);
+  $('#rsFillBtn').addEventListener('click', fillFromCustomer);
+}
+
 // ---------------------------------------------------------------- document details modal
 
 function openDocDetails(profile, d) {
@@ -1056,6 +1219,7 @@ wireSheetBtn();
 wireServices();
 wireResizer();
 wirePassport();
+wireResume();
 wireDocModal();
 wireNav();
 renderServices();

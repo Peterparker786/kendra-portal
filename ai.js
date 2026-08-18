@@ -97,6 +97,93 @@ export function aiEnabled() {
   return Boolean(GEMINI_API_KEY || NARA_ROUTER_KEY);
 }
 
+// ---- text-only AI call (resume maker jaisi cheezein) ----
+
+async function aiText(prompt) {
+  // 1) Google Gemini
+  if (GEMINI_API_KEY) {
+    const body = {
+      contents: [{ parts: [{ text: prompt }] }],
+      generationConfig: { temperature: 0.7, maxOutputTokens: 4096 },
+    };
+    let lastErr = '';
+    for (const MODEL of MODELS) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        if (!res.ok) {
+          lastErr = `Gemini ${res.status}`;
+          continue;
+        }
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+        if (text.trim()) return text;
+      } catch (err) {
+        lastErr = err.message;
+      }
+    }
+    if (lastErr) console.error('Gemini text failed:', lastErr);
+  }
+
+  // 2) NaraRouter / OpenAI-compatible
+  if (NARA_ROUTER_KEY) {
+    try {
+      const res = await fetch(`${NARA_ROUTER_BASE}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${NARA_ROUTER_KEY}`,
+        },
+        body: JSON.stringify({
+          model: NARA_ROUTER_MODEL,
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.7,
+          max_tokens: 4096,
+        }),
+      });
+      if (!res.ok) {
+        console.error(`NaraRouter ${res.status}: ${(await res.text()).slice(0, 200)}`);
+        return null;
+      }
+      const data = await res.json();
+      const content = data?.choices?.[0]?.message?.content || '';
+      if (String(content).trim()) return String(content);
+    } catch (err) {
+      console.error('NaraRouter text failed:', err.message);
+    }
+  }
+  return null;
+}
+
+const RESUME_PROMPT = [
+  'You are a professional resume writer for a computer center (Jan Seva Kendra) in India.',
+  'Create a clean, professional, one-page resume for the person described below.',
+  'Use ONLY the facts provided — do NOT invent experience, skills, or qualifications.',
+  'If a field is missing or empty, simply omit that section entirely.',
+  '',
+  'Person details (JSON):',
+  '{DETAILS}',
+  '',
+  'Format rules:',
+  '- Return the resume as MARKDOWN text only (no code fences, no extra commentary).',
+  '- Start with the person name as a heading, then a contact line (phone | email | address).',
+  '- Then sections in this order: Summary/Objective, Education, Skills, Experience, Additional Info.',
+  '- Education: each entry as "- Degree, Institution, Year".',
+  '- Skills: a single comma-separated line or short bullet list.',
+  '- Experience: 2-4 bullet points per job, professional wording.',
+  '- ATS-friendly, no tables, no fancy fonts.',
+].join('\n');
+
+/** Customer details -> professional resume (markdown). AI na ho to null. */
+export async function aiBuildResume(details) {
+  const prompt = RESUME_PROMPT.replace('{DETAILS}', JSON.stringify(details || {}));
+  return aiText(prompt);
+}
+
 /** Image/PDF buffer -> parsed JSON { text, docType, fields } | null (agar key nahi / fail) */
 export async function aiExtract(buffer, filename) {
   // 1) Google Gemini (agar AIza key hai)
