@@ -81,6 +81,57 @@ function toast(msg, type = 'ok') {
 
 // ---------------------------------------------------------------- upload
 
+let upTimer = null;
+let upStart = 0;
+
+function startProgress() {
+  const box = $('#uploadProgress');
+  if (!box) return;
+  box.hidden = false;
+  upStart = Date.now();
+  const fill = $('#upFill');
+  const status = $('#upStatus');
+  const timerEl = $('#upTimer');
+  fill.style.width = '8%';
+  status.textContent = 'File upload ho raha hai…';
+  timerEl.textContent = '0s';
+  setTimeout(() => {
+    if (!upTimer) return;
+    status.textContent = 'Data extract ho raha hai (AI/OCR)… 15–60 sec lag sakte hain';
+  }, 700);
+  let pct = 8;
+  upTimer = setInterval(() => {
+    timerEl.textContent = Math.floor((Date.now() - upStart) / 1000) + 's';
+    if (pct < 92) {
+      // shuru me tez, end me dheere — realistic feel
+      pct = Math.min(92, pct + Math.max(0.35, (95 - pct) / 55));
+      fill.style.width = pct + '%';
+    }
+  }, 150);
+}
+
+function finishProgress() {
+  if (!upTimer) return;
+  clearInterval(upTimer);
+  upTimer = null;
+  $('#upFill').style.width = '100%';
+  $('#upStatus').textContent = 'Ho gaya! Preview me check karo ✅';
+  $('#upTimer').textContent = Math.floor((Date.now() - upStart) / 1000) + 's';
+  setTimeout(() => {
+    const box = $('#uploadProgress');
+    if (box) box.hidden = true;
+  }, 900);
+}
+
+function stopProgress() {
+  if (upTimer) {
+    clearInterval(upTimer);
+    upTimer = null;
+  }
+  const box = $('#uploadProgress');
+  if (box) box.hidden = true;
+}
+
 function uploadFile(file) {
   if (!file) return;
   const okExt = /\.(pdf|txt|csv|jpe?g|png)$/i.test(file.name);
@@ -90,7 +141,7 @@ function uploadFile(file) {
   }
   const fd = new FormData();
   fd.append('file', file);
-  toast('Document se data extract ho raha hai…');
+  startProgress();
 
   fetch('/api/upload', { method: 'POST', body: fd })
     .then(async (res) => {
@@ -99,12 +150,16 @@ function uploadFile(file) {
       return data;
     })
     .then((preview) => {
+      finishProgress();
       state.preview = preview;
       renderPreview();
       $('#previewCard').hidden = false;
       $('#previewCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
     })
-    .catch((err) => toast(err.message, 'err'));
+    .catch((err) => {
+      stopProgress();
+      toast(err.message, 'err');
+    });
 }
 
 function wireUpload() {

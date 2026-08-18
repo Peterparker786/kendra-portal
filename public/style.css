@@ -734,3 +734,50 @@ body {
   border-bottom: 1px solid #d6defc;
   box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.7), 0 6px 16px -12px rgba(79, 70, 229, 0.35);
 }
+
+/* ---------------- upload progress bar ---------------- */
+.upload-progress {
+  margin-top: 14px;
+  background: #f8faff;
+  border: 1px solid #e7ebf4;
+  border-radius: 12px;
+  padding: 12px 14px;
+  box-shadow: inset 0 1px 3px rgba(15, 23, 42, 0.05);
+}
+.up-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: #e8ebf5;
+  overflow: hidden;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.12);
+}
+.up-fill {
+  height: 100%;
+  width: 0%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #818cf8, #6366f1 60%, #8b5cf6);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.4), 0 0 10px rgba(99, 102, 241, 0.5);
+  transition: width 0.35s ease;
+  position: relative;
+  overflow: hidden;
+}
+.up-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+  animation: upShine 1.2s linear infinite;
+}
+@keyframes upShine {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+.up-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+.up-meta b { color: var(--accent-dark); font-weight: 700; }
