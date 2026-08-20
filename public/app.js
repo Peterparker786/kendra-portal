@@ -2483,6 +2483,181 @@ wireNav();
   }
 })();
 
+// ---------------------------------------------------------------- Quick Fill Panel
+(function wireQuickFill() {
+  let allCustomers = [];
+  let selectedId = null;
+
+  $('#quickFillBtn').addEventListener('click', async () => {
+    $('#quickFillModal').hidden = false;
+    await loadCustomerList();
+  });
+  $('#quickFillClose').addEventListener('click', () => { $('#quickFillModal').hidden = true; });
+  $('#quickFillModal').addEventListener('click', (e) => { if (e.target === $('#quickFillModal')) $('#quickFillModal').hidden = true; });
+
+  async function loadCustomerList() {
+    try {
+      const r = await fetch('/api/customers');
+      allCustomers = await r.json();
+      renderCustomerList(allCustomers);
+    } catch (err) {
+      toast('Customers load nahi ho paye', 'err');
+    }
+  }
+
+  function renderCustomerList(list) {
+    const el = $('#qfCustomerList');
+    $('#qfSearchCount').textContent = list.length + ' customers';
+    if (!list.length) {
+      el.innerHTML = '<p style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">Koi customer nahi mila</p>';
+      return;
+    }
+    el.innerHTML = list.map((c) => `
+      <div class="qf-cust-item ${c.id === selectedId ? 'active' : ''}" data-id="${c.id}">
+        <div class="qf-avatar">${(c.name || '?')[0].toUpperCase()}</div>
+        <div class="qf-cust-info">
+          <div class="qf-cust-name">${escapeHtml(c.name)}</div>
+          <div class="qf-cust-meta">${c.phone ? '📞 ' + escapeHtml(c.phone) : ''} ${c.aadhaar ? '· 🪪 ' + escapeHtml(c.aadhaar) : ''} ${c.doc_count ? '· 📄 ' + c.doc_count + ' docs' : ''}</div>
+        </div>
+        <span style="color:#94a3b8;font-size:18px">›</span>
+      </div>
+    `).join('');
+    el.querySelectorAll('.qf-cust-item').forEach((item) => {
+      item.addEventListener('click', () => loadCustomerData(Number(item.dataset.id)));
+    });
+  }
+
+  async function loadCustomerData(id) {
+    selectedId = id;
+    // highlight active
+    document.querySelectorAll('.qf-cust-item').forEach((el) => {
+      el.classList.toggle('active', Number(el.dataset.id) === id);
+    });
+    try {
+      const r = await fetch('/api/customers/' + id);
+      const c = await r.json();
+      showCustomerData(c);
+    } catch (err) {
+      toast('Data load nahi ho paya', 'err');
+    }
+  }
+
+  function showCustomerData(c) {
+    $('#qfDataPanel').hidden = false;
+    $('#qfCustName').textContent = c.name || 'Customer';
+    const fields = $('#qfFields');
+    
+    // Organize data into sections
+    const sections = [];
+    
+    // Personal Info
+    const personal = [];
+    if (c.name) personal.push({ label: 'Name', value: c.name });
+    if (c.father) personal.push({ label: 'Father', value: c.father });
+    if (c.dob) personal.push({ label: 'DOB', value: c.dob });
+    if (c.gender) personal.push({ label: 'Gender', value: c.gender });
+    if (c.phone) personal.push({ label: 'Phone', value: c.phone });
+    if (c.aadhaar) personal.push({ label: 'Aadhaar', value: c.aadhaar });
+    if (c.address) personal.push({ label: 'Address', value: c.address });
+    if (c.reg_no) personal.push({ label: 'Reg No', value: c.reg_no });
+    if (personal.length) sections.push({ title: '👤 Personal Info', fields: personal });
+    
+    // Documents
+    if (c.documents && c.documents.length) {
+      c.documents.forEach((doc, i) => {
+        const docFields = [];
+        if (doc.doc_type) docFields.push({ label: 'Type', value: doc.doc_type });
+        if (doc.doc_no) docFields.push({ label: 'Doc No', value: doc.doc_no });
+        if (doc.issue_date) docFields.push({ label: 'Issue Date', value: doc.issue_date });
+        if (doc.valid_till) docFields.push({ label: 'Valid Till', value: doc.valid_till });
+        if (doc.issued_by) docFields.push({ label: 'Issued By', value: doc.issued_by });
+        if (doc.status) docFields.push({ label: 'Status', value: doc.status });
+        // Extracted fields from JSON
+        if (doc.fields_json) {
+          try {
+            const fj = JSON.parse(doc.fields_json);
+            Object.entries(fj).forEach(([k, v]) => {
+              if (v && !docFields.some(f => f.label.toLowerCase() === k.toLowerCase())) {
+                docFields.push({ label: k, value: String(v) });
+              }
+            });
+          } catch {}
+        }
+        if (docFields.length) sections.push({ title: `📄 ${doc.doc_type || 'Document ' + (i + 1)}`, fields: docFields });
+      });
+    }
+    
+    if (!sections.length) {
+      fields.innerHTML = '<p style="color:#94a3b8;font-size:13px;text-align:center;padding:16px">Koi data nahi mila</p>';
+      return;
+    }
+    
+    fields.innerHTML = sections.map((sec) => `
+      <div class="qf-section">
+        <div class="qf-section-title">${sec.title}</div>
+        ${sec.fields.map((f) => `
+          <div class="qf-field">
+            <span class="qf-label">${escapeHtml(f.label)}</span>
+            <span class="qf-value">${escapeHtml(f.value)}</span>
+            <button class="qf-copy" data-val="${escapeHtml(f.value)}">📋 Copy</button>
+          </div>
+        `).join('')}
+      </div>
+    `).join('');
+    
+    // Wire copy buttons
+    fields.querySelectorAll('.qf-copy').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.val).then(() => {
+          btn.textContent = '✅ Copied!';
+          btn.classList.add('copied');
+          setTimeout(() => { btn.textContent = '📋 Copy'; btn.classList.remove('copied'); }, 1200);
+        });
+      });
+    });
+  }
+
+  // Search
+  $('#qfSearch').addEventListener('input', (e) => {
+    const q = e.target.value.trim().toLowerCase();
+    if (!q) { renderCustomerList(allCustomers); return; }
+    const filtered = allCustomers.filter((c) =>
+      (c.name || '').toLowerCase().includes(q) ||
+      (c.phone || '').includes(q) ||
+      (c.aadhaar || '').includes(q)
+    );
+    renderCustomerList(filtered);
+  });
+
+  // Copy All
+  $('#qfCopyAll').addEventListener('click', () => {
+    const allText = [];
+    document.querySelectorAll('#qfFields .qf-field').forEach((f) => {
+      const label = f.querySelector('.qf-label')?.textContent || '';
+      const value = f.querySelector('.qf-value')?.textContent || '';
+      allText.push(label + ': ' + value);
+    });
+    navigator.clipboard.writeText(allText.join('\n')).then(() => toast('Sab data copy ho gaya!'));
+  });
+
+  // Print
+  $('#qfPrintData').addEventListener('click', () => {
+    const name = $('#qfCustName').textContent;
+    const w = window.open('', '_blank');
+    w.document.write('<html><head><title>' + name + '</title><style>body{font-family:sans-serif;padding:20px}h2{color:#1e293b}h3{color:#6366f1;font-size:14px;margin:12px 0 6px;border-bottom:1px solid #e2e8f0;padding-bottom:4px}.row{display:flex;gap:8px;padding:3px 0;font-size:13px}.lbl{color:#64748b;min-width:100px;font-weight:600}.val{color:#1e293b}</style></head><body>');
+    w.document.write('<h2>' + name + ' — Customer Data</h2>');
+    document.querySelectorAll('.qf-section').forEach((sec) => {
+      w.document.write('<h3>' + sec.querySelector('.qf-section-title').textContent + '</h3>');
+      sec.querySelectorAll('.qf-field').forEach((f) => {
+        w.document.write('<div class="row"><span class="lbl">' + f.querySelector('.qf-label').textContent + '</span><span class="val">' + f.querySelector('.qf-value').textContent + '</span></div>');
+      });
+    });
+    w.document.write('</body></html>');
+    w.document.close();
+    w.print();
+  });
+})();
+
 renderServices();
 loadDocTypes();
 loadServices();
