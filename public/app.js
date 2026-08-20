@@ -2720,13 +2720,13 @@ wireNav();
       assistantWin.close();
       assistantActive = false;
       fab.classList.remove('active');
-      icon.textContent = '🤖';
+      icon.textContent = '✨';
       return;
     }
     const w = 360, h = 600;
     const left = screen.width - w - 20;
     const top = screen.height - h - 60;
-    assistantWin = window.open('/assistant.html', 'assistant', `width=${w},height=${h},left=${left},top=${top},scrollbars=no,resizable=yes`);
+    assistantWin = window.open('/assistant.html', 'chutki', `width=${w},height=${h},left=${left},top=${top},scrollbars=no,resizable=yes`);
     assistantActive = true;
     fab.classList.add('active');
     icon.textContent = '✅';

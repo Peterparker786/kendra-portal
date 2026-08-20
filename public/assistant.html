@@ -3,27 +3,54 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>📋 Assistant</title>
+<title>Chutki — AI Assistant</title>
 <style>
 * { margin: 0; padding: 0; box-sizing: border-box; }
-body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 12px; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; display: flex; flex-direction: column; }
 
-.header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
-.header h1 { font-size: 15px; font-weight: 700; color: #fff; flex: 1; }
-.header .badge { background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.header { padding: 12px 14px; background: linear-gradient(135deg, #6366f1, #8b5cf6); display: flex; align-items: center; gap: 8px; }
+.header .logo { font-size: 22px; }
+.header h1 { font-size: 16px; font-weight: 700; color: #fff; flex: 1; }
+.header .badge { background: rgba(255,255,255,0.2); color: #fff; padding: 2px 8px; border-radius: 999px; font-size: 10px; font-weight: 600; }
 
-.search { width: 100%; padding: 10px 12px; border: 1px solid #334155; border-radius: 10px; background: #1e293b; color: #e2e8f0; font-size: 13px; margin-bottom: 10px; }
-.search::placeholder { color: #64748b; }
-.search:focus { outline: none; border-color: #6366f1; }
+/* Tabs */
+.tabs { display: flex; background: #1e293b; border-bottom: 1px solid #334155; }
+.tab { flex: 1; padding: 10px; text-align: center; font-size: 12px; font-weight: 600; color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s; }
+.tab:hover { color: #94a3b8; }
+.tab.active { color: #818cf8; border-bottom-color: #818cf8; background: #0f172a; }
 
-.cust-list { max-height: 120px; overflow-y: auto; margin-bottom: 12px; }
-.cust-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 2px; }
-.cust-item:hover { background: #1e293b; }
-.cust-item.active { background: #1e293b; border-color: #6366f1; }
-.cust-avatar { width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
-.cust-name { font-size: 12px; font-weight: 600; color: #e2e8f0; }
-.cust-meta { font-size: 10px; color: #64748b; }
+/* Chat Panel */
+.chat-panel { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.chat-messages { flex: 1; overflow-y: auto; padding: 12px; }
+.chat-msg { margin-bottom: 12px; display: flex; gap: 8px; }
+.chat-msg.user { flex-direction: row-reverse; }
+.chat-avatar { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 14px; flex-shrink: 0; }
+.chat-msg.chutki .chat-avatar { background: linear-gradient(135deg, #6366f1, #8b5cf6); }
+.chat-msg.user .chat-avatar { background: #334155; }
+.chat-bubble { max-width: 85%; padding: 10px 14px; border-radius: 14px; font-size: 13px; line-height: 1.5; }
+.chat-msg.chutki .chat-bubble { background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
+.chat-msg.user .chat-bubble { background: #6366f1; color: #fff; border-bottom-right-radius: 4px; }
+.chat-bubble .copy-msg { display: inline-block; margin-top: 6px; padding: 3px 8px; background: #334155; border: 1px solid #475569; border-radius: 6px; font-size: 11px; cursor: pointer; color: #94a3b8; transition: all 0.15s; }
+.chat-bubble .copy-msg:hover { background: #6366f1; color: #fff; }
+.typing { display: flex; gap: 4px; padding: 8px 14px; }
+.typing span { width: 6px; height: 6px; border-radius: 50%; background: #6366f1; animation: typeBounce 0.6s ease-in-out infinite; }
+.typing span:nth-child(2) { animation-delay: 0.1s; }
+.typing span:nth-child(3) { animation-delay: 0.2s; }
+@keyframes typeBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
 
+.chat-input { display: flex; gap: 8px; padding: 10px 12px; background: #1e293b; border-top: 1px solid #334155; }
+.chat-input input { flex: 1; padding: 10px 12px; border: 1px solid #334155; border-radius: 10px; background: #0f172a; color: #e2e8f0; font-size: 13px; }
+.chat-input input:focus { outline: none; border-color: #6366f1; }
+.chat-input button { padding: 10px 16px; border: none; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; }
+.chat-input button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Quick Actions */
+.quick-actions { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 12px; background: #0f172a; border-top: 1px solid #334155; }
+.quick-btn { padding: 6px 10px; border: 1px solid #334155; border-radius: 8px; background: #1e293b; color: #94a3b8; font-size: 11px; cursor: pointer; transition: all 0.15s; }
+.quick-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+
+/* Data Panel */
+.data-panel { flex: 1; overflow-y: auto; padding: 12px; }
 .section { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
 .section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #818cf8; margin-bottom: 6px; }
 .field { display: flex; align-items: center; gap: 4px; padding: 3px 0; border-bottom: 1px solid #334155; }
@@ -33,17 +60,27 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; c
 .copy-btn { padding: 2px 6px; border: 1px solid #475569; border-radius: 5px; background: #0f172a; font-size: 10px; cursor: pointer; color: #94a3b8; transition: all 0.15s; white-space: nowrap; }
 .copy-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
 .copy-btn.copied { background: #16a34a; color: #fff; border-color: #16a34a; }
+.copy-all { width: 100%; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; }
 
-.copy-all { width: 100%; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: transform 0.15s; }
-.copy-all:active { transform: scale(0.97); }
-
-.no-data { text-align: center; color: #64748b; font-size: 12px; padding: 20px; }
+/* Customer Search */
+.search { width: 100%; padding: 10px 12px; border: 1px solid #334155; border-radius: 10px; background: #1e293b; color: #e2e8f0; font-size: 13px; margin-bottom: 10px; }
+.search::placeholder { color: #64748b; }
+.search:focus { outline: none; border-color: #6366f1; }
+.cust-list { max-height: 120px; overflow-y: auto; margin-bottom: 12px; }
+.cust-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 2px; }
+.cust-item:hover { background: #1e293b; }
+.cust-item.active { background: #1e293b; border-color: #6366f1; }
+.cust-avatar { width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.cust-name { font-size: 12px; font-weight: 600; }
+.cust-meta { font-size: 10px; color: #64748b; }
 
 .empty-state { text-align: center; padding: 30px 10px; }
 .empty-state .icon { font-size: 36px; margin-bottom: 8px; }
 .empty-state p { color: #64748b; font-size: 12px; }
+.no-data { text-align: center; color: #64748b; font-size: 12px; padding: 20px; }
 
-/* scrollbar */
+.hidden { display: none !important; }
+
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
@@ -52,68 +89,155 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; c
 <body>
 
 <div class="header">
-  <h1>📋 Assistant</h1>
-  <span class="badge" id="fieldCount">0 fields</span>
+  <span class="logo">✨</span>
+  <h1>Chutki</h1>
+  <span class="badge">AI Assistant</span>
 </div>
 
-<input type="text" class="search" id="search" placeholder="🔍 Customer dhundho…" />
+<div class="tabs">
+  <div class="tab active" data-tab="chat">💬 Chat</div>
+  <div class="tab" data-tab="data">📋 Data</div>
+</div>
 
-<div class="cust-list" id="custList">
-  <div class="empty-state">
-    <div class="icon">🤖</div>
-    <p>Customer select karo portal pe → data yahan aa jayega</p>
+<!-- Chat Tab -->
+<div class="chat-panel" id="chatTab">
+  <div class="chat-messages" id="chatMessages">
+    <div class="chat-msg chutki">
+      <div class="chat-avatar">✨</div>
+      <div class="chat-bubble">
+        Namaste! Main <b>Chutki</b> hoon — aapki AI assistant. 🤖<br><br>
+        Mujhse pucho:
+        <br>• "Form bharo" — data suggest karungi
+        <br>• "Screen read karo" — page analyze karungi
+        <br>• "Customer ka data dikhao" — details bataungi
+        <br>• "Kya dalna hai is field me?" — guide karungi
+      </div>
+    </div>
+  </div>
+  <div class="quick-actions" id="quickActions">
+    <button class="quick-btn" data-msg="Screen read karo aur batao kya kya bharna hai">📖 Screen Read</button>
+    <button class="quick-btn" data-msg="Form fields detect karo aur suggest karo kya dalna hai">📝 Auto-Fill Suggest</button>
+    <button class="quick-btn" data-msg="Customer ka saara data dikhao">👤 Customer Data</button>
+    <button class="quick-btn" data-msg="Is form me kya kya dalna hai step by step batao"> Step by Step</button>
+  </div>
+  <div class="chat-input">
+    <input type="text" id="chatInput" placeholder="Chutki se pucho…" />
+    <button id="chatSend">Send</button>
   </div>
 </div>
 
-<div id="dataPanel"></div>
-
-<button class="copy-all" id="copyAll">📋 Sab Copy karo</button>
+<!-- Data Tab -->
+<div class="data-panel hidden" id="dataTab">
+  <input type="text" class="search" id="search" placeholder="🔍 Customer dhundho…" />
+  <div class="cust-list" id="custList">
+    <div class="empty-state">
+      <div class="icon">✨</div>
+      <p>Customer select karo portal pe → data yahan aa jayega</p>
+    </div>
+  </div>
+  <div id="dataFields"></div>
+  <button class="copy-all" id="copyAll">📋 Sab Copy karo</button>
+</div>
 
 <script>
 let customers = [];
 let selectedId = null;
 let currentData = null;
+let isTyping = false;
 
-// Portal se message suno
-window.addEventListener('message', (e) => {
-  const d = e.data;
-  if (d.type === 'assistant-data') {
-    customers = d.customers || [];
-    renderCustList();
-  }
-  if (d.type === 'assistant-select') {
-    selectedId = d.customerId;
-    currentData = d.customer;
-    renderData();
-  }
-  if (d.type === 'assistant-update') {
-    customers = d.customers || [];
-    if (d.customer) { currentData = d.customer; selectedId = d.customerId; }
-    renderCustList();
-    renderData();
-  }
+// ---- Tabs ----
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+    t.classList.add('active');
+    document.getElementById('chatTab').classList.toggle('hidden', t.dataset.tab !== 'chat');
+    document.getElementById('dataTab').classList.toggle('hidden', t.dataset.tab !== 'data');
+  });
 });
 
-// Also poll localStorage for updates (cross-window fallback)
-setInterval(() => {
-  try {
-    const raw = localStorage.getItem('assistant-data');
-    if (raw) {
-      const d = JSON.parse(raw);
-      if (d.customers && JSON.stringify(d.customers) !== JSON.stringify(customers)) {
-        customers = d.customers;
-        renderCustList();
-      }
-      if (d.customer && (!currentData || d.customer.id !== currentData.id)) {
-        currentData = d.customer;
-        selectedId = d.customerId;
-        renderData();
-      }
-    }
-  } catch {}
-}, 1500);
+// ---- Chat ----
+document.getElementById('chatSend').addEventListener('click', sendChat);
+document.getElementById('chatInput').addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChat(); });
 
-// Search
+document.querySelectorAll('.quick-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.getElementById('chatInput').value = btn.dataset.msg;
+    sendChat();
+  });
+});
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const msg = input.value.trim();
+  if (!msg || isTyping) return;
+  input.value = '';
+  
+  // Add user message
+  addMessage('user', msg);
+  
+  // Show typing
+  isTyping = true;
+  document.getElementById('chatSend').disabled = true;
+  const typingEl = addTyping();
+  
+  try {
+    // Get screen content from parent
+    let screenContent = '';
+    try {
+      if (window.opener) {
+        screenContent = window.opener.document.body.innerText.slice(0, 3000);
+      }
+    } catch {}
+    
+    const r = await fetch('/api/chutki-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: msg,
+        customerData: currentData,
+        screenContent,
+      }),
+    });
+    const d = await r.json();
+    
+    // Remove typing
+    typingEl.remove();
+    
+    // Add Chutki response
+    addMessage('chutki', d.reply || 'Kuch samajh nahi aaya.');
+  } catch (err) {
+    typingEl.remove();
+    addMessage('chutki', 'Error: ' + err.message);
+  } finally {
+    isTyping = false;
+    document.getElementById('chatSend').disabled = false;
+  }
+}
+
+function addMessage(type, text) {
+  const el = document.createElement('div');
+  el.className = 'chat-msg ' + type;
+  const avatar = type === 'chutki' ? '✨' : '👤';
+  el.innerHTML = `
+    <div class="chat-avatar">${avatar}</div>
+    <div class="chat-bubble">${escapeHtml(text).replace(/\n/g, '<br>')}
+      <div class="copy-msg" onclick="navigator.clipboard.writeText('${escapeHtml(text).replace(/'/g, "\\'")}').then(() => { this.textContent = '✅ Copied!'; setTimeout(() => this.textContent = '📋 Copy', 1200); })">📋 Copy</div>
+    </div>
+  `;
+  document.getElementById('chatMessages').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+
+function addTyping() {
+  const el = document.createElement('div');
+  el.className = 'chat-msg chutki';
+  el.innerHTML = '<div class="chat-avatar">✨</div><div class="chat-bubble"><div class="typing"><span></span><span></span><span></span></div></div>';
+  document.getElementById('chatMessages').appendChild(el);
+  el.scrollIntoView({ behavior: 'smooth' });
+  return el;
+}
+
+// ---- Data Tab ----
 document.getElementById('search').addEventListener('input', (e) => {
   const q = e.target.value.trim().toLowerCase();
   renderCustList(q);
@@ -139,24 +263,19 @@ function renderCustList(filter = '') {
   `).join('');
   el.querySelectorAll('.cust-item').forEach(item => {
     item.addEventListener('click', () => {
-      // Portal ko bolo ye customer select karo
       if (window.opener) window.opener.postMessage({ type: 'assistant-click', customerId: Number(item.dataset.id) }, '*');
     });
   });
 }
 
 function renderData() {
-  const panel = document.getElementById('dataPanel');
-  const countBadge = document.getElementById('fieldCount');
+  const panel = document.getElementById('dataFields');
   if (!currentData) {
-    panel.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>Customer select karo data dikhne ke liye</p></div>';
-    countBadge.textContent = '0 fields';
+    panel.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>Customer select karo</p></div>';
     return;
   }
   const c = currentData;
   const sections = [];
-  
-  // Personal
   const personal = [];
   if (c.name) personal.push({ label: 'Name', value: c.name });
   if (c.father) personal.push({ label: 'Father', value: c.father });
@@ -165,10 +284,8 @@ function renderData() {
   if (c.phone) personal.push({ label: 'Phone', value: c.phone });
   if (c.aadhaar) personal.push({ label: 'Aadhaar', value: c.aadhaar });
   if (c.address) personal.push({ label: 'Address', value: c.address });
-  if (c.reg_no) personal.push({ label: 'Reg No', value: c.reg_no });
   if (personal.length) sections.push({ title: '👤 Personal', fields: personal });
 
-  // Documents
   if (c.documents && c.documents.length) {
     c.documents.forEach((doc, i) => {
       const df = [];
@@ -177,14 +294,11 @@ function renderData() {
       if (doc.issue_date) df.push({ label: 'Issue', value: doc.issue_date });
       if (doc.valid_till) df.push({ label: 'Valid Till', value: doc.valid_till });
       if (doc.issued_by) df.push({ label: 'Issued By', value: doc.issued_by });
-      if (doc.status) df.push({ label: 'Status', value: doc.status });
       if (doc.fields_json) {
         try {
           const fj = JSON.parse(doc.fields_json);
           Object.entries(fj).forEach(([k, v]) => {
-            if (v && !df.some(f => f.label.toLowerCase() === k.toLowerCase())) {
-              df.push({ label: k, value: String(v) });
-            }
+            if (v && !df.some(f => f.label.toLowerCase() === k.toLowerCase())) df.push({ label: k, value: String(v) });
           });
         } catch {}
       }
@@ -192,44 +306,33 @@ function renderData() {
     });
   }
 
-  let totalFields = 0;
-  panel.innerHTML = sections.map(sec => {
-    totalFields += sec.fields.length;
-    return `
-      <div class="section">
-        <div class="section-title">${sec.title}</div>
-        ${sec.fields.map(f => `
-          <div class="field">
-            <span class="field-label">${esc(f.label)}</span>
-            <span class="field-value">${esc(f.value)}</span>
-            <button class="copy-btn" data-val="${esc(f.value)}">📋</button>
-          </div>
-        `).join('')}
-      </div>
-    `;
-  }).join('');
+  panel.innerHTML = sections.map(sec => `
+    <div class="section">
+      <div class="section-title">${sec.title}</div>
+      ${sec.fields.map(f => `
+        <div class="field">
+          <span class="field-label">${esc(f.label)}</span>
+          <span class="field-value">${esc(f.value)}</span>
+          <button class="copy-btn" data-val="${esc(f.value)}">📋</button>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
 
-  countBadge.textContent = totalFields + ' fields';
-
-  // Wire copy buttons
   panel.querySelectorAll('.copy-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       navigator.clipboard.writeText(btn.dataset.val).then(() => {
-        btn.textContent = '✅';
-        btn.classList.add('copied');
+        btn.textContent = '✅'; btn.classList.add('copied');
         setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 1200);
       });
     });
   });
 }
 
-// Copy All
 document.getElementById('copyAll').addEventListener('click', () => {
   const allText = [];
-  document.querySelectorAll('#dataPanel .field').forEach(f => {
-    const label = f.querySelector('.field-label')?.textContent || '';
-    const value = f.querySelector('.field-value')?.textContent || '';
-    allText.push(label + ': ' + value);
+  document.querySelectorAll('#dataFields .field').forEach(f => {
+    allText.push(f.querySelector('.field-label')?.textContent + ': ' + f.querySelector('.field-value')?.textContent);
   });
   navigator.clipboard.writeText(allText.join('\n')).then(() => {
     const btn = document.getElementById('copyAll');
@@ -238,7 +341,48 @@ document.getElementById('copyAll').addEventListener('click', () => {
   });
 });
 
+// ---- Portal se messages ----
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (d.type === 'assistant-update' || d.type === 'assistant-data') {
+    customers = d.customers || [];
+    renderCustList();
+  }
+  if (d.type === 'assistant-select' || (d.type === 'assistant-update' && d.customer)) {
+    currentData = d.customer || currentData;
+    selectedId = d.customerId || selectedId;
+    renderData();
+    // Auto-switch to data tab when customer selected
+    if (currentData) {
+      document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      document.querySelector('[data-tab="data"]').classList.add('active');
+      document.getElementById('chatTab').classList.add('hidden');
+      document.getElementById('dataTab').classList.remove('hidden');
+    }
+  }
+});
+
+// localStorage fallback
+setInterval(() => {
+  try {
+    const raw = localStorage.getItem('assistant-data');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.customers && JSON.stringify(d.customers) !== JSON.stringify(customers)) {
+        customers = d.customers;
+        renderCustList();
+      }
+      if (d.customer && (!currentData || d.customer.id !== currentData.id)) {
+        currentData = d.customer;
+        selectedId = d.customerId;
+        renderData();
+      }
+    }
+  } catch {}
+}, 1500);
+
 function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function escapeHtml(s) { return esc(s); }
 </script>
 </body>
 </html>
