@@ -1730,6 +1730,7 @@ function loadCustomers() {
       state.customers = list;
       updateStats();
       renderCustomers();
+      if (window.syncAssistant) window.syncAssistant();
     })
     .catch((err) => toast(err.message, 'err'));
 }
@@ -1748,6 +1749,7 @@ function selectCustomer(id) {
       state.profile = profile;
       renderProfile();
       $('#profileCard').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (window.syncAssistant) window.syncAssistant();
     })
     .catch((err) => toast(err.message, 'err'));
 }
@@ -2703,6 +2705,74 @@ wireNav();
     w.document.close();
     w.print();
   });
+})();
+
+// ---------------------------------------------------------------- Floating Assistant
+(function wireAssistant() {
+  let assistantWin = null;
+  let assistantActive = false;
+  const fab = $('#assistantFab');
+  const icon = $('#assistantFabIcon');
+
+  // FAB click → popup open/close
+  fab.addEventListener('click', () => {
+    if (assistantWin && !assistantWin.closed) {
+      assistantWin.close();
+      assistantActive = false;
+      fab.classList.remove('active');
+      icon.textContent = '🤖';
+      return;
+    }
+    const w = 360, h = 600;
+    const left = screen.width - w - 20;
+    const top = screen.height - h - 60;
+    assistantWin = window.open('/assistant.html', 'assistant', `width=${w},height=${h},left=${left},top=${top},scrollbars=no,resizable=yes`);
+    assistantActive = true;
+    fab.classList.add('active');
+    icon.textContent = '✅';
+    // Thodi der baad data bhejo
+    setTimeout(() => syncAssistant(), 500);
+  });
+
+  // Portal se assistant ko data sync karo
+  function syncAssistant() {
+    if (!assistantWin || assistantWin.closed) return;
+    const payload = { type: 'assistant-update', customers: state.customers };
+    if (state.profile) {
+      payload.customer = state.profile;
+      payload.customerId = state.selectedId;
+    }
+    assistantWin.postMessage(payload, '*');
+    // localStorage fallback (cross-origin ke liye)
+    try { localStorage.setItem('assistant-data', JSON.stringify(payload)); } catch {}
+  }
+
+  // Jab customer select ho → assistant ko update karo
+  const origSelect = selectCustomer;
+  // Override selectCustomer to also sync assistant
+  window._origSelectCustomer = origSelect;
+  
+  // MutationObserver: jab profile badle → assistant sync
+  const profileCard = $('#profileCard');
+  if (profileCard) {
+    new MutationObserver(() => {
+      if (assistantActive) setTimeout(() => syncAssistant(), 300);
+    }).observe(profileCard, { attributes: true, subtree: true, childList: true });
+  }
+
+  // Jab customer list load ho → assistant sync
+  const origLoad = loadCustomers;
+  window._origLoadCustomers = origLoad;
+
+  // Listen for messages from assistant popup
+  window.addEventListener('message', (e) => {
+    if (e.data?.type === 'assistant-click' && e.data.customerId) {
+      selectCustomer(e.data.customerId);
+    }
+  });
+
+  // Expose sync function globally
+  window.syncAssistant = syncAssistant;
 })();
 
 renderServices();

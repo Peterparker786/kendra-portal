@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>📋 Assistant</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; color: #e2e8f0; min-height: 100vh; padding: 12px; }
+
+.header { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+.header h1 { font-size: 15px; font-weight: 700; color: #fff; flex: 1; }
+.header .badge { background: #6366f1; color: #fff; padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+
+.search { width: 100%; padding: 10px 12px; border: 1px solid #334155; border-radius: 10px; background: #1e293b; color: #e2e8f0; font-size: 13px; margin-bottom: 10px; }
+.search::placeholder { color: #64748b; }
+.search:focus { outline: none; border-color: #6366f1; }
+
+.cust-list { max-height: 120px; overflow-y: auto; margin-bottom: 12px; }
+.cust-item { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 8px; cursor: pointer; transition: background 0.15s; border: 1px solid transparent; margin-bottom: 2px; }
+.cust-item:hover { background: #1e293b; }
+.cust-item.active { background: #1e293b; border-color: #6366f1; }
+.cust-avatar { width: 28px; height: 28px; border-radius: 50%; background: #6366f1; color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 11px; flex-shrink: 0; }
+.cust-name { font-size: 12px; font-weight: 600; color: #e2e8f0; }
+.cust-meta { font-size: 10px; color: #64748b; }
+
+.section { background: #1e293b; border: 1px solid #334155; border-radius: 10px; padding: 8px 10px; margin-bottom: 8px; }
+.section-title { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; color: #818cf8; margin-bottom: 6px; }
+.field { display: flex; align-items: center; gap: 4px; padding: 3px 0; border-bottom: 1px solid #334155; }
+.field:last-child { border-bottom: none; }
+.field-label { font-size: 10px; color: #64748b; font-weight: 600; min-width: 70px; text-transform: uppercase; }
+.field-value { flex: 1; font-size: 12px; color: #e2e8f0; font-weight: 500; word-break: break-all; }
+.copy-btn { padding: 2px 6px; border: 1px solid #475569; border-radius: 5px; background: #0f172a; font-size: 10px; cursor: pointer; color: #94a3b8; transition: all 0.15s; white-space: nowrap; }
+.copy-btn:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
+.copy-btn.copied { background: #16a34a; color: #fff; border-color: #16a34a; }
+
+.copy-all { width: 100%; padding: 10px; border: none; border-radius: 10px; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 13px; font-weight: 700; cursor: pointer; margin-top: 8px; transition: transform 0.15s; }
+.copy-all:active { transform: scale(0.97); }
+
+.no-data { text-align: center; color: #64748b; font-size: 12px; padding: 20px; }
+
+.empty-state { text-align: center; padding: 30px 10px; }
+.empty-state .icon { font-size: 36px; margin-bottom: 8px; }
+.empty-state p { color: #64748b; font-size: 12px; }
+
+/* scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #475569; border-radius: 999px; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📋 Assistant</h1>
+  <span class="badge" id="fieldCount">0 fields</span>
+</div>
+
+<input type="text" class="search" id="search" placeholder="🔍 Customer dhundho…" />
+
+<div class="cust-list" id="custList">
+  <div class="empty-state">
+    <div class="icon">🤖</div>
+    <p>Customer select karo portal pe → data yahan aa jayega</p>
+  </div>
+</div>
+
+<div id="dataPanel"></div>
+
+<button class="copy-all" id="copyAll">📋 Sab Copy karo</button>
+
+<script>
+let customers = [];
+let selectedId = null;
+let currentData = null;
+
+// Portal se message suno
+window.addEventListener('message', (e) => {
+  const d = e.data;
+  if (d.type === 'assistant-data') {
+    customers = d.customers || [];
+    renderCustList();
+  }
+  if (d.type === 'assistant-select') {
+    selectedId = d.customerId;
+    currentData = d.customer;
+    renderData();
+  }
+  if (d.type === 'assistant-update') {
+    customers = d.customers || [];
+    if (d.customer) { currentData = d.customer; selectedId = d.customerId; }
+    renderCustList();
+    renderData();
+  }
+});
+
+// Also poll localStorage for updates (cross-window fallback)
+setInterval(() => {
+  try {
+    const raw = localStorage.getItem('assistant-data');
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d.customers && JSON.stringify(d.customers) !== JSON.stringify(customers)) {
+        customers = d.customers;
+        renderCustList();
+      }
+      if (d.customer && (!currentData || d.customer.id !== currentData.id)) {
+        currentData = d.customer;
+        selectedId = d.customerId;
+        renderData();
+      }
+    }
+  } catch {}
+}, 1500);
+
+// Search
+document.getElementById('search').addEventListener('input', (e) => {
+  const q = e.target.value.trim().toLowerCase();
+  renderCustList(q);
+});
+
+function renderCustList(filter = '') {
+  const el = document.getElementById('custList');
+  const list = filter
+    ? customers.filter(c => (c.name || '').toLowerCase().includes(filter) || (c.phone || '').includes(filter))
+    : customers;
+  if (!list.length) {
+    el.innerHTML = '<div class="no-data">Koi customer nahi</div>';
+    return;
+  }
+  el.innerHTML = list.map(c => `
+    <div class="cust-item ${c.id === selectedId ? 'active' : ''}" data-id="${c.id}">
+      <div class="cust-avatar">${(c.name || '?')[0].toUpperCase()}</div>
+      <div>
+        <div class="cust-name">${esc(c.name)}</div>
+        <div class="cust-meta">${c.phone || ''} ${c.aadhaar ? '· ' + c.aadhaar : ''}</div>
+      </div>
+    </div>
+  `).join('');
+  el.querySelectorAll('.cust-item').forEach(item => {
+    item.addEventListener('click', () => {
+      // Portal ko bolo ye customer select karo
+      if (window.opener) window.opener.postMessage({ type: 'assistant-click', customerId: Number(item.dataset.id) }, '*');
+    });
+  });
+}
+
+function renderData() {
+  const panel = document.getElementById('dataPanel');
+  const countBadge = document.getElementById('fieldCount');
+  if (!currentData) {
+    panel.innerHTML = '<div class="empty-state"><div class="icon">📄</div><p>Customer select karo data dikhne ke liye</p></div>';
+    countBadge.textContent = '0 fields';
+    return;
+  }
+  const c = currentData;
+  const sections = [];
+  
+  // Personal
+  const personal = [];
+  if (c.name) personal.push({ label: 'Name', value: c.name });
+  if (c.father) personal.push({ label: 'Father', value: c.father });
+  if (c.dob) personal.push({ label: 'DOB', value: c.dob });
+  if (c.gender) personal.push({ label: 'Gender', value: c.gender });
+  if (c.phone) personal.push({ label: 'Phone', value: c.phone });
+  if (c.aadhaar) personal.push({ label: 'Aadhaar', value: c.aadhaar });
+  if (c.address) personal.push({ label: 'Address', value: c.address });
+  if (c.reg_no) personal.push({ label: 'Reg No', value: c.reg_no });
+  if (personal.length) sections.push({ title: '👤 Personal', fields: personal });
+
+  // Documents
+  if (c.documents && c.documents.length) {
+    c.documents.forEach((doc, i) => {
+      const df = [];
+      if (doc.doc_type) df.push({ label: 'Type', value: doc.doc_type });
+      if (doc.doc_no) df.push({ label: 'Doc No', value: doc.doc_no });
+      if (doc.issue_date) df.push({ label: 'Issue', value: doc.issue_date });
+      if (doc.valid_till) df.push({ label: 'Valid Till', value: doc.valid_till });
+      if (doc.issued_by) df.push({ label: 'Issued By', value: doc.issued_by });
+      if (doc.status) df.push({ label: 'Status', value: doc.status });
+      if (doc.fields_json) {
+        try {
+          const fj = JSON.parse(doc.fields_json);
+          Object.entries(fj).forEach(([k, v]) => {
+            if (v && !df.some(f => f.label.toLowerCase() === k.toLowerCase())) {
+              df.push({ label: k, value: String(v) });
+            }
+          });
+        } catch {}
+      }
+      if (df.length) sections.push({ title: `📄 ${doc.doc_type || 'Doc ' + (i+1)}`, fields: df });
+    });
+  }
+
+  let totalFields = 0;
+  panel.innerHTML = sections.map(sec => {
+    totalFields += sec.fields.length;
+    return `
+      <div class="section">
+        <div class="section-title">${sec.title}</div>
+        ${sec.fields.map(f => `
+          <div class="field">
+            <span class="field-label">${esc(f.label)}</span>
+            <span class="field-value">${esc(f.value)}</span>
+            <button class="copy-btn" data-val="${esc(f.value)}">📋</button>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }).join('');
+
+  countBadge.textContent = totalFields + ' fields';
+
+  // Wire copy buttons
+  panel.querySelectorAll('.copy-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      navigator.clipboard.writeText(btn.dataset.val).then(() => {
+        btn.textContent = '✅';
+        btn.classList.add('copied');
+        setTimeout(() => { btn.textContent = '📋'; btn.classList.remove('copied'); }, 1200);
+      });
+    });
+  });
+}
+
+// Copy All
+document.getElementById('copyAll').addEventListener('click', () => {
+  const allText = [];
+  document.querySelectorAll('#dataPanel .field').forEach(f => {
+    const label = f.querySelector('.field-label')?.textContent || '';
+    const value = f.querySelector('.field-value')?.textContent || '';
+    allText.push(label + ': ' + value);
+  });
+  navigator.clipboard.writeText(allText.join('\n')).then(() => {
+    const btn = document.getElementById('copyAll');
+    btn.textContent = '✅ Sab copy ho gaya!';
+    setTimeout(() => { btn.textContent = '📋 Sab Copy karo'; }, 1500);
+  });
+});
+
+function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+</script>
+</body>
+</html>
