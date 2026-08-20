@@ -2353,6 +2353,136 @@ wirePassport();
 wireResume();
 wireDocModal();
 wireNav();
+// ---------------------------------------------------------------- Phone Upload from Phone
+(function wirePhoneUpload() {
+  let currentSessionId = localStorage.getItem('phoneSessionId') || null;
+  let savedLink = localStorage.getItem('phoneLink') || '';
+  let pollTimer = null;
+
+  $('#phoneUploadBtn').addEventListener('click', () => {
+    $('#phoneModal').hidden = false;
+    if (currentSessionId) {
+      $('#phoneLink').value = savedLink;
+      $('#phoneQR').src = savedLink ? `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(savedLink)}&margin=10` : '';
+      $('#phoneWhatsApp').href = savedLink ? `https://wa.me/?text=${encodeURIComponent('Photo upload karo: ' + savedLink)}` : '#';
+      showActiveSession(); pollFiles();
+    } else showCreateForm();
+  });
+  $('#phoneModalClose').addEventListener('click', () => { $('#phoneModal').hidden = true; });
+  $('#phoneModal').addEventListener('click', (e) => { if (e.target === $('#phoneModal')) $('#phoneModal').hidden = true; });
+
+  function showCreateForm() {
+    $('#phoneSessionCreate').hidden = false;
+    $('#phoneSessionActive').hidden = true;
+    stopPolling();
+  }
+
+  function showActiveSession() {
+    $('#phoneSessionCreate').hidden = true;
+    $('#phoneSessionActive').hidden = false;
+    startPolling();
+  }
+
+  $('#phoneCreateBtn').addEventListener('click', async () => {
+    const label = $('#phoneLabel').value.trim();
+    try {
+      const r = await fetch('/api/phone-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ label }),
+      });
+      const d = await r.json();
+      currentSessionId = d.sessionId;
+      savedLink = d.link;
+      localStorage.setItem('phoneSessionId', d.sessionId);
+      localStorage.setItem('phoneLink', d.link);
+      $('#phoneLink').value = d.link;
+      $('#phoneQR').src = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(d.link)}&margin=10`;
+      $('#phoneWhatsApp').href = `https://wa.me/?text=${encodeURIComponent('Photo upload karo: ' + d.link)}`;
+      showActiveSession();
+      toast('Upload link ready! Customer ko bhejo.');
+    } catch (err) {
+      toast('Session banane me problem: ' + err.message, 'err');
+    }
+  });
+
+  $('#phoneCopyBtn').addEventListener('click', () => {
+    navigator.clipboard.writeText($('#phoneLink').value).then(() => toast('Link copy ho gaya!'));
+  });
+
+  $('#phoneRefreshBtn').addEventListener('click', () => pollFiles());
+
+  $('#phoneCloseSession').addEventListener('click', async () => {
+    if (!currentSessionId) return;
+    try {
+      await fetch(`/api/phone-session/${currentSessionId}`, { method: 'DELETE' });
+    } catch {}
+    currentSessionId = null;
+    savedLink = '';
+    localStorage.removeItem('phoneSessionId');
+    localStorage.removeItem('phoneLink');
+    stopPolling();
+    showCreateForm();
+    toast('Session band ho gaya');
+  });
+
+  function startPolling() {
+    stopPolling();
+    pollFiles();
+    pollTimer = setInterval(pollFiles, 3000);
+  }
+  function stopPolling() { if (pollTimer) { clearInterval(pollTimer); pollTimer = null; } }
+
+  async function pollFiles() {
+    if (!currentSessionId) return;
+    try {
+      const r = await fetch(`/api/phone-session/${currentSessionId}`);
+      const d = await r.json();
+      $('#phoneFileCount').textContent = d.count || 0;
+      const list = $('#phoneFilesList');
+      if (!d.files || d.files.length === 0) {
+        list.innerHTML = '<p style="color:#94a3b8;font-size:13px;text-align:center;padding:12px">Abhi koi file nahi aaya — customer ka wait karo…</p>';
+        return;
+      }
+      list.innerHTML = d.files.map((f) => `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px;background:#f8fafc;border-radius:10px;margin-bottom:6px">
+          <img src="${f.dataUrl}" style="width:50px;height:50px;object-fit:cover;border-radius:8px;border:1px solid #e2e8f0" />
+          <div style="flex:1;min-width:0">
+            <div style="font-weight:600;font-size:13px;color:#1e293b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escapeHtml(f.name)}</div>
+            <div style="font-size:11px;color:#94a3b8">${fmtSize(f.size)} · ${new Date(f.uploadedAt).toLocaleTimeString('hi-IN')}</div>
+          </div>
+          <button class="btn phone-extract-btn" data-id="${f.id}" style="padding:6px 12px;font-size:12px;background:#6366f1;color:#fff">🔍 Extract</button>
+        </div>
+      `).join('');
+      // Wire extract buttons
+      list.querySelectorAll('.phone-extract-btn').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          const file = d.files.find((f) => f.id === btn.dataset.id);
+          if (!file) return;
+          // Convert dataURL to File and trigger upload flow
+          fetch(file.dataUrl)
+            .then((r) => r.blob())
+            .then((blob) => {
+              const newFile = new File([blob], file.name, { type: file.type });
+              const dt = new DataTransfer();
+              dt.items.add(newFile);
+              const input = document.querySelector('#uploadInput');
+              if (input) {
+                input.files = dt.files;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+              }
+              $('#phoneModal').hidden = true;
+              // Navigate to upload page
+              const nav = $('#navUpload');
+              if (nav) nav.click();
+              toast('File upload page pe le ja rahe hain…');
+            });
+        });
+      });
+    } catch (err) { /* silent */ }
+  }
+})();
+
 renderServices();
 loadDocTypes();
 loadServices();

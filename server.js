@@ -333,6 +333,193 @@ app.get('/api/export', (_req, res, next) => {
   }
 });
 
+// ---- Phone se photo upload (QR / link) ----
+const phoneSessions = new Map(); // sessionId → { files: [], created: Date, label: string }
+
+function genId(len = 8) {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let id = '';
+  for (let i = 0; i < len; i++) id += chars[Math.floor(Math.random() * chars.length)];
+  return id;
+}
+
+// Create upload session
+app.post('/api/phone-session', (req, res) => {
+  const label = req.body.label || '';
+  const sessionId = genId();
+  phoneSessions.set(sessionId, { files: [], created: new Date(), label });
+  const host = req.headers.host || `localhost:${PORT}`;
+  const proto = req.headers['x-forwarded-proto'] || 'http';
+  const link = `${proto}://${host}/phone/${sessionId}`;
+  res.json({ sessionId, link });
+});
+
+// Close session
+app.delete('/api/phone-session/:id', (req, res) => {
+  phoneSessions.delete(req.params.id);
+  res.json({ ok: true });
+});
+
+// Poll for uploaded files
+app.get('/api/phone-session/:id', (req, res) => {
+  const session = phoneSessions.get(req.params.id);
+  if (!session) return res.status(404).json({ error: 'Session not found' });
+  res.json({ files: session.files, count: session.files.length });
+});
+
+// Phone upload page (served as HTML)
+app.get('/phone/:sessionId', (req, res) => {
+  const session = phoneSessions.get(req.params.sessionId);
+  if (!session) return res.status(404).send('<h2>Link expire ho gaya ya galat hai</h2><p>Naya link lelo portal se.</p>');
+  res.send(`<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Photo Upload</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:system-ui,-apple-system,sans-serif;background:linear-gradient(135deg,#667eea,#764ba2);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:16px}
+.card{background:#fff;border-radius:20px;padding:32px 24px;max-width:400px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,0.3);text-align:center}
+.logo{font-size:48px;margin-bottom:8px}
+h2{color:#1e293b;font-size:20px;margin-bottom:4px}
+p.sub{color:#64748b;font-size:13px;margin-bottom:20px}
+.upload-area{border:2px dashed #c7d2fe;border-radius:16px;padding:40px 20px;margin:16px 0;cursor:pointer;transition:all 0.2s}
+.upload-area:hover,.upload-area.drag{border-color:#6366f1;background:#eef2ff}
+.upload-area .icon{font-size:48px;margin-bottom:8px}
+.upload-area p{color:#475569;font-size:14px}
+.upload-area small{color:#94a3b8;font-size:12px}
+input[type=file]{display:none}
+.btn{display:inline-block;padding:14px 32px;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;transition:all 0.2s}
+.btn-primary{background:linear-gradient(135deg,#6366f1,#8b5cf6);color:#fff;box-shadow:0 4px 15px rgba(99,102,241,0.4)}
+.btn-primary:active{transform:scale(0.97)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.sent{display:none;text-align:center;padding:20px 0}
+.sent .check{font-size:64px;margin-bottom:8px}
+.sent h3{color:#16a34a;font-size:18px}
+.sent p{color:#64748b;font-size:13px;margin-top:4px}
+.sent .again{margin-top:16px;padding:10px 24px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;font-weight:600;color:#475569;cursor:pointer}
+.progress{display:none;margin:12px 0}
+.progress .track{height:6px;background:#e2e8f0;border-radius:999px;overflow:hidden}
+.progress .fill{height:100%;background:linear-gradient(90deg,#6366f1,#8b5cf6);border-radius:999px;transition:width 0.3s}
+.preview-img{max-width:100%;max-height:200px;border-radius:12px;margin:12px 0;border:2px solid #e2e8f0;display:none}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">📸</div>
+  <h2>Photo Upload</h2>
+  <p class="sub">Camera se photo khicho ya gallery se chuno</p>
+  
+  <div class="upload-area" id="dropZone">
+    <div class="icon">📷</div>
+    <p><b>Tap to open camera</b></p>
+    <small>Ya photo drag & drop karo</small>
+  </div>
+  
+  <input type="file" id="fileInput" accept="image/*" capture="environment" />
+  <img class="preview-img" id="previewImg" />
+  <div class="progress" id="progWrap">
+    <div class="track"><div class="fill" id="progFill" style="width:0%"></div></div>
+  </div>
+  <button class="btn btn-primary" id="sendBtn" disabled>📤 Upload karo</button>
+  
+  <div class="sent" id="sentMsg">
+    <div class="check">✅</div>
+    <h3>Photo bhej di!</h3>
+    <p>Portal pe aa gaya hai. Admin dekh lega.</p>
+    <button class="again" onclick="reset()">Ek aur photo bhejo</button>
+  </div>
+</div>
+<script>
+const SID = '${req.params.sessionId}';
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const previewImg = document.getElementById('previewImg');
+const sendBtn = document.getElementById('sendBtn');
+const sentMsg = document.getElementById('sentMsg');
+const progWrap = document.getElementById('progWrap');
+const progFill = document.getElementById('progFill');
+let selectedFile = null;
+
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('touchend', (e) => { e.preventDefault(); fileInput.click(); });
+dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', (e) => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]);
+});
+fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
+
+function handleFile(f) {
+  selectedFile = f;
+  previewImg.src = URL.createObjectURL(f);
+  previewImg.style.display = 'block';
+  dropZone.style.display = 'none';
+  sendBtn.disabled = false;
+}
+
+sendBtn.addEventListener('click', async () => {
+  if (!selectedFile) return;
+  sendBtn.disabled = true;
+  progWrap.style.display = 'block';
+  progFill.style.width = '10%';
+  const fd = new FormData();
+  fd.append('file', selectedFile);
+  try {
+    progFill.style.width = '40%';
+    const r = await fetch('/phone/' + SID, { method: 'POST', body: fd });
+    progFill.style.width = '80%';
+    const d = await r.json();
+    if (!r.ok) throw new Error(d.error || 'Upload failed');
+    progFill.style.width = '100%';
+    setTimeout(() => {
+      document.querySelector('.upload-area').style.display = 'none';
+      previewImg.style.display = 'none';
+      progWrap.style.display = 'none';
+      sentMsg.style.display = 'block';
+      sendBtn.style.display = 'none';
+    }, 400);
+  } catch (err) {
+    alert('Upload fail: ' + err.message);
+    sendBtn.disabled = false;
+    progWrap.style.display = 'none';
+  }
+});
+
+function reset() {
+  selectedFile = null;
+  fileInput.value = '';
+  previewImg.style.display = 'none';
+  previewImg.src = '';
+  dropZone.style.display = 'block';
+  sendBtn.style.display = 'inline-block';
+  sendBtn.disabled = true;
+  sentMsg.style.display = 'none';
+}
+</script>
+</body>
+</html>`);
+});
+
+// Accept photo upload from phone
+app.post('/phone/:sessionId', upload.single('file'), (req, res) => {
+  const session = phoneSessions.get(req.params.sessionId);
+  if (!session) return res.status(404).json({ error: 'Session expired' });
+  if (!req.file) return res.status(400).json({ error: 'No file' });
+  const base64 = 'data:' + req.file.mimetype + ';base64,' + req.file.buffer.toString('base64');
+  session.files.push({
+    id: genId(12),
+    name: req.file.originalname,
+    size: req.file.size,
+    type: req.file.mimetype,
+    dataUrl: base64,
+    uploadedAt: new Date().toISOString(),
+  });
+  res.json({ ok: true, count: session.files.length });
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((err, _req, res, _next) => {
