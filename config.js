@@ -49,7 +49,7 @@ export const NARA_ROUTER_MODEL = process.env.NARA_ROUTER_MODEL || 'agnes-2.0-fla
 
 // Groq: fast + free (console.groq.com se key lo)
 export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
-export const GROQ_MODEL = process.env.GROQ_MODEL || 'qwen/qwen3.6-27b';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'groq/compound-mini';
 
 // ---------------------------------------------------------------
 // 4) GOOGLE SHEET URL — topbar ka "Open Excel (Google Sheet)" button

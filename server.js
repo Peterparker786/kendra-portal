@@ -198,12 +198,46 @@ app.post('/api/chutki-chat', async (req, res, next) => {
   try {
     const { message, customerData, screenContent } = req.body || {};
     if (!message) return res.status(400).json({ error: 'Message required' });
-    let ctx = 'You are Chutki, AI assistant for Jan Seva Kendra. Respond in Hinglish. Be concise.';
-    if (customerData) ctx += '\nCustomer: ' + JSON.stringify(customerData);
-    if (screenContent) ctx += '\nScreen: ' + String(screenContent).slice(0, 3000);
-    ctx += '\nUser: ' + message;
+
+    // ---- Portal ka full data access ----
+    const customers = store.listCustomers();
+    const stats = store.dashboardStats();
+
+    // Auto customer lookup — name mention ho to data fetch karo
+    let foundCustomer = null;
+    const msgLower = message.toLowerCase();
+    for (const c of customers) {
+      if (c.name && msgLower.includes(c.name.toLowerCase())) {
+        foundCustomer = store.getCustomer(c.id);
+        break;
+      }
+    }
+
+    // System prompt — Chutki ko full portal access hai
+    let ctx = `You are Chutki, a smart AI assistant for Mishra Computers (Jan Seva Kendra).\n\n`;
+    ctx += `PORTAL CAPABILITIES:\n`;
+    ctx += `- You have access to ALL customer data, documents, and portal features.\n`;
+    ctx += `- Customers: ${customers.map(c => c.name + ' (Phone: ' + c.phone + ', Aadhaar: ' + c.aadhaar + ', Docs: ' + c.doc_count + ')').join(', ')}.\n`;
+    ctx += `- Total: ${stats.customers} customers, ${stats.documents} documents, ${stats.services} services used.\n`;
+    ctx += `- Document types: Aadhaar, PAN, Voter ID, Passport, Driving License, ABHA, Marksheet, Birth/Death Certificate, etc.\n`;
+    ctx += `- Features: Document Upload, Extract & Save, Passport Photo Maker, Resume Maker, Document Resizer, Quick Fill, Phone Upload.\n\n`;
+    ctx += `RESPONSE RULES:\n`;
+    ctx += `- Always respond in Hinglish (Hindi + English mix).\n`;
+    ctx += `- Be concise, helpful, and action-oriented.\n`;
+    ctx += `- When user asks about a customer, use the provided customer data.\n`;
+    ctx += `- When user asks "X ka data nikalo", find that customer and show their details.\n`;
+    ctx += `- When user asks to fill a form, suggest which customer data maps to which field.\n`;
+    ctx += `- When user asks about portal features, explain how to use them.\n`;
+    ctx += `- You can suggest actions like: upload document, create resume, make passport photo, etc.\n\n`;
+
+    if (customerData) ctx += `SELECTED CUSTOMER: ${JSON.stringify(customerData)}\n\n`;
+    if (foundCustomer) ctx += `FOUND CUSTOMER (auto-fetched):\nName: ${foundCustomer.name}\nPhone: ${foundCustomer.phone}\nAadhaar: ${foundCustomer.aadhaar}\nDOB: ${foundCustomer.dob}\nFather: ${foundCustomer.father}\nAddress: ${foundCustomer.address}\nDocuments: ${JSON.stringify(foundCustomer.documents)}\n\n`;
+    if (screenContent) ctx += `SCREEN CONTENT: ${String(screenContent).slice(0, 3000)}\n\n`;
+
+    ctx += `User: ${message}`;
+
     const reply = await aiText(ctx);
-    res.json({ reply: reply || 'Chutki abhi kuch samajh nahi paayi. AI key check karo.' });
+    res.json({ reply: reply || 'Chutki abhi kuch samajh nahi paayi. Dubara try karo.' });
   } catch (err) { next(err); }
 });
 
