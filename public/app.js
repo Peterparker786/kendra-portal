@@ -1768,8 +1768,18 @@ function renderProfile() {
     ['Address', profile.address],
   ].filter(([, v]) => v);
   details.innerHTML = chips
-    .map(([k, v]) => `<span class="chip"><b>${esc(k)}</b>${esc(v)}</span>`)
+    .map(([k, v]) => `<span class="chip"><b>${esc(k)}</b>${esc(v)}<button class="copy-btn" data-val="${esc(v)}" title="Copy">📋</button></span>`)
     .join('');
+  // Wire copy buttons
+  details.querySelectorAll('.copy-btn').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigator.clipboard.writeText(btn.dataset.val).then(() => {
+        btn.textContent = '✅';
+        setTimeout(() => { btn.textContent = '📋'; }, 1200);
+      });
+    });
+  });
 
   $('#profileMeta').textContent = `${profile.documents.length} document${profile.documents.length === 1 ? '' : 's'} total`;
 

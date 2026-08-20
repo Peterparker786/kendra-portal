@@ -1602,3 +1602,11 @@ body {
 }
 .qf-copy:hover { background: #6366f1; color: #fff; border-color: #6366f1; }
 .qf-copy.copied { background: #16a34a; color: #fff; border-color: #16a34a; }
+
+/* ------------- copy button in profile chips ------------- */
+.copy-btn {
+  border: none; background: none; cursor: pointer; font-size: 13px;
+  padding: 0 4px; margin-left: 4px; opacity: 0.5; transition: opacity 0.15s;
+  vertical-align: middle;
+}
+.copy-btn:hover { opacity: 1; }
