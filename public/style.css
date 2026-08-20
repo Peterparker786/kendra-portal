@@ -1614,10 +1614,10 @@ body {
 /* ------------- floating assistant button ------------- */
 #assistantFab {
   position: fixed; bottom: 24px; right: 24px; width: 56px; height: 56px;
-  border-radius: 50%; background: linear-gradient(135deg, #f59e0b, #f97316);
+  border-radius: 50%; background: linear-gradient(135deg, #ea580c, #f97316);
   color: #fff; display: flex; align-items: center; justify-content: center;
   font-size: 24px; cursor: pointer; z-index: 9999;
-  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.5), 0 0 0 0 rgba(245, 158, 11, 0.4);
+  box-shadow: 0 4px 20px rgba(234, 88, 12, 0.5), 0 0 0 0 rgba(234, 88, 12, 0.4);
   animation: fabPulse 2s ease-in-out infinite;
   transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -1632,7 +1632,7 @@ body {
 /* ------------- Chutki inline floating panel ------------- */
 .chutki-panel {
   position: fixed; bottom: 90px; right: 20px; width: 380px; height: 520px;
-  background: #0f172a; border: 1px solid #334155; border-radius: 16px;
+  background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 10000;
   display: flex; flex-direction: column; overflow: hidden;
   transform: scale(0) translateY(20px); transform-origin: bottom right;
@@ -1659,69 +1659,69 @@ body {
 }
 .chutki-min:hover { opacity: 1; }
 
-.chutki-tabs { display: flex; background: #1e293b; border-bottom: 1px solid #334155; }
+.chutki-tabs { display: flex; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
 .chutki-tab {
   flex: 1; padding: 8px; text-align: center; font-size: 11px; font-weight: 600;
   color: #64748b; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.15s;
 }
-.chutki-tab:hover { color: #94a3b8; }
-.chutki-tab.active { color: #f59e0b; border-bottom-color: #f59e0b; }
+.chutki-tab:hover { color: #334155; }
+.chutki-tab.active { color: #ea580c; border-bottom-color: #ea580c; }
 
 .chutki-chat { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 .chutki-msgs { flex: 1; overflow-y: auto; padding: 8px; }
 .chutki-msg { display: flex; gap: 6px; margin-bottom: 8px; }
 .chutki-msg.chutki-user { flex-direction: row-reverse; }
-.chutki-av { width: 24px; height: 24px; border-radius: 50%; background: #f59e0b; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; }
+.chutki-av { width: 24px; height: 24px; border-radius: 50%; background: #ea580c; display: flex; align-items: center; justify-content: center; font-size: 12px; flex-shrink: 0; color: #fff; }
 .chutki-msg.chutki-user .chutki-av { background: #475569; }
 .chutki-bubble {
   max-width: 80%; padding: 8px 12px; border-radius: 12px; font-size: 12px; line-height: 1.5;
   position: relative; word-break: break-word;
 }
-.chutki-ai .chutki-bubble { background: #1e293b; border: 1px solid #334155; border-bottom-left-radius: 4px; }
-.chutki-user .chutki-bubble { background: #f59e0b; color: #fff; border-bottom-right-radius: 4px; }
+.chutki-ai .chutki-bubble { background: #f1f5f9; border: 1px solid #e2e8f0; color: #1e293b; border-bottom-left-radius: 4px; }
+.chutki-user .chutki-bubble { background: #ea580c; color: #fff; border-bottom-right-radius: 4px; }
 .chutki-copymsg {
-  display: inline-block; margin-top: 4px; padding: 1px 6px; background: #334155;
-  border: 1px solid #475569; border-radius: 5px; font-size: 10px; cursor: pointer; color: #94a3b8;
+  display: inline-block; margin-top: 4px; padding: 1px 6px; background: #e2e8f0;
+  border: 1px solid #cbd5e1; border-radius: 5px; font-size: 10px; cursor: pointer; color: #475569;
 }
-.chutki-copymsg:hover { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+.chutki-copymsg:hover { background: #ea580c; color: #fff; border-color: #ea580c; }
 .chutki-typing { display: flex; gap: 3px; padding: 4px 0; }
-.chutki-typing span { width: 5px; height: 5px; border-radius: 50%; background: #f59e0b; animation: cBounce 0.6s ease-in-out infinite; }
+.chutki-typing span { width: 5px; height: 5px; border-radius: 50%; background: #ea580c; animation: cBounce 0.6s ease-in-out infinite; }
 .chutki-typing span:nth-child(2) { animation-delay: 0.1s; }
 .chutki-typing span:nth-child(3) { animation-delay: 0.2s; }
 @keyframes cBounce { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-3px); } }
 
-.chutki-quick { display: flex; gap: 4px; padding: 6px 8px; overflow-x: auto; }
+.chutki-quick { display: flex; gap: 4px; padding: 6px 8px; overflow-x: auto; background: #f8fafc; }
 .chutki-qbtn {
-  flex-shrink: 0; padding: 5px 8px; border: 1px solid #334155; border-radius: 6px;
-  background: #1e293b; color: #94a3b8; font-size: 10px; cursor: pointer; white-space: nowrap;
+  flex-shrink: 0; padding: 5px 8px; border: 1px solid #e2e8f0; border-radius: 6px;
+  background: #fff; color: #475569; font-size: 10px; cursor: pointer; white-space: nowrap; font-weight: 600;
 }
-.chutki-qbtn:hover { background: #f59e0b; color: #fff; border-color: #f59e0b; }
+.chutki-qbtn:hover { background: #ea580c; color: #fff; border-color: #ea580c; }
 
-.chutki-input { display: flex; gap: 6px; padding: 8px; background: #1e293b; border-top: 1px solid #334155; }
+.chutki-input { display: flex; gap: 6px; padding: 8px; background: #fff; border-top: 1px solid #e2e8f0; }
 .chutki-input input {
-  flex: 1; padding: 8px 10px; border: 1px solid #334155; border-radius: 8px;
-  background: #0f172a; color: #e2e8f0; font-size: 12px;
+  flex: 1; padding: 8px 10px; border: 1px solid #e2e8f0; border-radius: 8px;
+  background: #f8fafc; color: #1e293b; font-size: 12px;
 }
-.chutki-input input:focus { outline: none; border-color: #f59e0b; }
+.chutki-input input:focus { outline: none; border-color: #ea580c; }
 .chutki-input button {
   padding: 8px 12px; border: none; border-radius: 8px;
-  background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff;
+  background: linear-gradient(135deg, #ea580c, #f97316); color: #fff;
   font-size: 13px; font-weight: 700; cursor: pointer;
 }
 
-.chutki-data { flex: 1; overflow-y: auto; padding: 8px; }
+.chutki-data { flex: 1; overflow-y: auto; padding: 8px; background: #fff; }
 .chutki-data-content { max-height: 380px; overflow-y: auto; }
-.chutki-dfield { display: flex; align-items: center; gap: 4px; padding: 3px 0; border-bottom: 1px solid #1e293b; }
+.chutki-dfield { display: flex; align-items: center; gap: 4px; padding: 4px 0; border-bottom: 1px solid #f1f5f9; }
 .chutki-dlbl { font-size: 9px; color: #64748b; font-weight: 600; min-width: 60px; text-transform: uppercase; }
-.chutki-dval { flex: 1; font-size: 11px; color: #e2e8f0; word-break: break-all; }
+.chutki-dval { flex: 1; font-size: 11px; color: #1e293b; font-weight: 500; word-break: break-all; }
 .chutki-dcopy {
-  padding: 1px 5px; border: 1px solid #475569; border-radius: 4px;
-  background: #0f172a; font-size: 9px; cursor: pointer; color: #94a3b8;
+  padding: 1px 5px; border: 1px solid #e2e8f0; border-radius: 4px;
+  background: #f8fafc; font-size: 9px; cursor: pointer; color: #475569;
 }
-.chutki-dcopy:hover { background: #f59e0b; color: #fff; }
+.chutki-dcopy:hover { background: #ea580c; color: #fff; }
 .chutki-copyall {
   width: 100%; padding: 8px; border: none; border-radius: 8px; margin-top: 6px;
-  background: linear-gradient(135deg, #f59e0b, #f97316); color: #fff;
+  background: linear-gradient(135deg, #ea580c, #f97316); color: #fff;
   font-size: 12px; font-weight: 700; cursor: pointer;
 }
 .chutki-nodata { text-align: center; color: #64748b; font-size: 12px; padding: 20px; }
