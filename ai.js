@@ -133,18 +133,34 @@ export function aiEnabled() {
 // ---- text-only AI call (resume maker jaisi cheezein) ----
 
 async function openAiRequest(url, apiKey, body) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-    body: JSON.stringify(body),
-  });
-  if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json();
-  return data?.choices?.[0]?.message?.content || '';
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 10000); // 10s timeout
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify(body),
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+    if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    const data = await res.json();
+    return data?.choices?.[0]?.message?.content || '';
+  } catch (err) { clearTimeout(timer); throw err; }
 }
 
 export async function aiText(prompt) {
-  // 1) Google Gemini
+  // Speed order: Groq (2-3s) → Gemini (5-8s) → NaraRouter
+  // 1) Groq (fastest, free)
+  if (GROQ_API_KEY) {
+    try {
+      const content = await openAiRequest('https://api.groq.com/openai/v1/chat/completions', GROQ_API_KEY,
+        { model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 4096 });
+      if (String(content).trim()) return String(content);
+    } catch (err) { console.error('Groq text failed:', err.message); }
+  }
+
+  // 2) Gemini
   if (GEMINI_API_KEY) {
     const body = {
       contents: [{ parts: [{ text: prompt }] }],
@@ -168,10 +184,9 @@ export async function aiText(prompt) {
     if (lastErr) console.error('Gemini text failed:', lastErr);
   }
 
-  // 2) OpenAI-compatible (NaraRouter / Groq)
+  // 3) NaraRouter
   const providers = [];
   if (NARA_ROUTER_KEY) providers.push({ name: 'NaraRouter', url: `${NARA_ROUTER_BASE}/chat/completions`, key: NARA_ROUTER_KEY, model: NARA_ROUTER_MODEL });
-  if (GROQ_API_KEY) providers.push({ name: 'Groq', url: 'https://api.groq.com/openai/v1/chat/completions', key: GROQ_API_KEY, model: GROQ_MODEL });
   for (const p of providers) {
     try {
       const content = await openAiRequest(p.url, p.key, { model: p.model, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 4096 });
