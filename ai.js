@@ -21,9 +21,10 @@ import sharp from 'sharp';
 
 // Gemini ke liye models try karne ka order: env me GEMINI_MODEL diya ho to wahi,
 // warna gemini-2.5-flash pehle aur gemini-2.0-flash fallback.
+// Speed priority: gemini-2.0-flash sabse fast hai (2-5 sec)
 const MODELS = process.env.GEMINI_MODEL
   ? [process.env.GEMINI_MODEL]
-  : ['gemini-2.5-flash', 'gemini-2.0-flash'];
+  : ['gemini-2.0-flash', 'gemini-2.5-flash'];
 
 function mimeFor(filename) {
   const l = String(filename || '').toLowerCase();
@@ -78,24 +79,44 @@ const PROMPT = [
  */
 async function shrinkForAI(buffer, filename) {
   const mime = mimeFor(filename);
+  
+  // PDF -> sirf pehla page nikalke image banao (10x faster)
   if (mime === 'application/pdf') {
+    try {
+      const { PDFDocument } = await import('pdf-lib');
+      const pdfDoc = await PDFDocument.load(buffer);
+      const pageCount = pdfDoc.getPageCount();
+      if (pageCount > 0) {
+        // Pehla page alag PDF me
+        const newPdf = await PDFDocument.create();
+        const [page] = await newPdf.copyPages(pdfDoc, [0]);
+        newPdf.addPage(page);
+        const singlePage = await newPdf.save();
+        // PDF -> image via sharp (if possible) ya as-is
+        return { mime: 'application/pdf', data: singlePage.toString('base64'), singlePage: true };
+      }
+    } catch {}
+    // Fallback: full PDF as-is
     return { mime, data: buffer.toString('base64') };
   }
+  
+  // Image -> aggressively compress (1024px max, quality 75)
   try {
     const meta = await sharp(buffer).metadata();
     const w = meta.width || 0;
     const h = meta.height || 0;
     const maxDim = Math.max(w, h);
-    if (maxDim > 1568) {
-      const scale = 1568 / maxDim;
+    const TARGET = 1024; // 1028px = ~3x faster than 1568px
+    if (maxDim > TARGET) {
+      const scale = TARGET / maxDim;
       const small = await sharp(buffer)
         .rotate()
         .resize(Math.round(w * scale), Math.round(h * scale))
-        .jpeg({ quality: 88 })
+        .jpeg({ quality: 75 }) // lower quality = smaller = faster
         .toBuffer();
       return { mime: 'image/jpeg', data: small.toString('base64') };
     }
-    const clean = await sharp(buffer).rotate().jpeg({ quality: 90 }).toBuffer();
+    const clean = await sharp(buffer).rotate().jpeg({ quality: 80 }).toBuffer();
     return { mime: 'image/jpeg', data: clean.toString('base64') };
   } catch {
     return { mime, data: buffer.toString('base64') };
@@ -268,9 +289,14 @@ async function aiViaGemini(buffer, filename) {
     generationConfig: { temperature: 0, maxOutputTokens: 2048 },
   };
 
+  // Parallel: pehle faster model try karo, timeout ke saath
+  const TIMEOUT_MS = 15000; // 15 sec per model
   let lastErr = '';
+  
   for (const MODEL of MODELS) {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
 
     let res;
     try {
@@ -278,11 +304,14 @@ async function aiViaGemini(buffer, filename) {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
     } catch (err) {
-      lastErr = err.message;
+      clearTimeout(timer);
+      lastErr = err.name === 'AbortError' ? `${MODEL} timeout (${TIMEOUT_MS/1000}s)` : err.message;
       continue;
     }
+    clearTimeout(timer);
 
     if (!res.ok) {
       const errText = await res.text();

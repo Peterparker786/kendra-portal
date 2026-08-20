@@ -96,7 +96,7 @@ function startProgress() {
   timerEl.textContent = '0s';
   setTimeout(() => {
     if (!upTimer) return;
-    status.textContent = 'Data extract ho raha hai (AI/OCR)… 15–60 sec lag sakte hain';
+    status.textContent = 'Data extract ho raha hai (AI)… 5–15 sec lag sakte hain';
   }, 700);
   let pct = 8;
   upTimer = setInterval(() => {
@@ -131,15 +131,52 @@ function stopProgress() {
   if (box) box.hidden = true;
 }
 
-function uploadFile(file) {
+// Client-side image compress before upload (5x faster extraction)
+async function compressImage(file, maxPx = 1024, quality = 0.8) {
+  if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) return file; // PDF/text as-is
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const w = img.width, h = img.height;
+      const scale = Math.min(1, maxPx / Math.max(w, h));
+      if (scale >= 1) { resolve(file); return; } // already small
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(w * scale);
+      canvas.height = Math.round(h * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob((blob) => {
+        if (blob && blob.size < file.size) {
+          resolve(new File([blob], file.name, { type: 'image/jpeg' }));
+        } else {
+          resolve(file);
+        }
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = () => resolve(file);
+    img.src = URL.createObjectURL(file);
+  });
+}
+
+async function uploadFile(file) {
   if (!file) return;
   const okExt = /\.(pdf|txt|csv|jpe?g|png)$/i.test(file.name);
   if (!okExt) {
     toast('Sirf PDF, JPG, PNG, TXT ya CSV file upload karo', 'err');
     return;
   }
+  // Compress image before upload (5x faster extraction)
+  let uploadFile = file;
+  if (/^image\//i.test(file.type) && file.size > 500000) {
+    toast('Image compress ho rahi hai…');
+    uploadFile = await compressImage(file);
+    if (uploadFile.size < file.size) {
+      const pct = Math.round((1 - uploadFile.size / file.size) * 100);
+      toast(`Image ${pct}% chhoti ho gayi (${fmtSize(file.size)} → ${fmtSize(uploadFile.size)})`);
+    }
+  }
   const fd = new FormData();
-  fd.append('file', file);
+  fd.append('file', uploadFile);
   startProgress();
 
   fetch('/api/upload', { method: 'POST', body: fd })
