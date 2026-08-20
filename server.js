@@ -6,7 +6,7 @@ import multer from 'multer';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { analyzeDocument, extractRawText } from './extract.js';
-import { aiBuildResume, aiParseResume } from './ai.js';
+import { aiBuildResume, aiParseResume, aiText } from './ai.js';
 import { buildResumePdf } from './resumepdf.js';
 import { resizeDocument } from './resize.js';
 import { makePassportSheet } from './passport.js';
@@ -198,60 +198,13 @@ app.post('/api/chutki-chat', async (req, res, next) => {
   try {
     const { message, customerData, screenContent } = req.body || {};
     if (!message) return res.status(400).json({ error: 'Message required' });
-    
-    // Build context with customer data
-    let context = 'You are Chutki, a smart AI assistant for Jan Seva Kendra (government service center). You help staff fill forms, suggest data, and answer questions about customers. Be helpful, concise, and respond in Hinglish (Hindi+English mix).';
-    
-    if (customerData) {
-      context += '\n\nCurrent customer data:\n' + JSON.stringify(customerData, null, 2);
-    }
-    if (screenContent) {
-      context += '\n\nScreen content (what user is seeing):\n' + String(screenContent).slice(0, 3000);
-    }
-    
-    context += '\n\nWhen user asks to fill a form, suggest which customer data maps to which field.';
-    context += '\nWhen user asks about a customer, use the provided customer data.';
-    context += '\nKeep responses short and actionable.';
-    
-    const fullPrompt = context + '\n\nUser: ' + message;
-    
-    // Call Gemini
-    const { GEMINI_API_KEY } = await import('./config.js');
-    if (!GEMINI_API_KEY) {
-      return res.json({ reply: 'Chutki AI abhi configure nahi hai. Admin se Gemini API key set karwao.' });
-    }
-    
-    const MODELS = ['gemini-2.0-flash', 'gemini-2.5-flash'];
-    let reply = '';
-    
-    for (const MODEL of MODELS) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
-        const controller = new AbortController();
-        const timer = setTimeout(() => controller.abort(), 15000);
-        
-        const r = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: fullPrompt }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
-          }),
-          signal: controller.signal,
-        });
-        clearTimeout(timer);
-        
-        if (!r.ok) continue;
-        const data = await r.json();
-        reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        if (reply) break;
-      } catch {}
-    }
-    
-    res.json({ reply: reply || 'Sorry, Chutki abhi kuch samajh nahi paayi. Dubara try karo.' });
-  } catch (err) {
-    next(err);
-  }
+    let ctx = 'You are Chutki, AI assistant for Jan Seva Kendra. Respond in Hinglish. Be concise.';
+    if (customerData) ctx += '\nCustomer: ' + JSON.stringify(customerData);
+    if (screenContent) ctx += '\nScreen: ' + String(screenContent).slice(0, 3000);
+    ctx += '\nUser: ' + message;
+    const reply = await aiText(ctx);
+    res.json({ reply: reply || 'Chutki abhi kuch samajh nahi paayi. AI key check karo.' });
+  } catch (err) { next(err); }
 });
 
 // ---- resume maker: AI se professional resume (template fallback ke saath) ----

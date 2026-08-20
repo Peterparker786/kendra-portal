@@ -16,6 +16,8 @@ import {
   NARA_ROUTER_KEY,
   NARA_ROUTER_BASE,
   NARA_ROUTER_MODEL,
+  GROQ_API_KEY,
+  GROQ_MODEL,
 } from './config.js';
 import sharp from 'sharp';
 
@@ -125,12 +127,23 @@ async function shrinkForAI(buffer, filename) {
 
 /** Kya koi AI provider configured hai? (images ko seedha AI pe bhejna hai ya nahi) */
 export function aiEnabled() {
-  return Boolean(GEMINI_API_KEY || NARA_ROUTER_KEY);
+  return Boolean(GEMINI_API_KEY || NARA_ROUTER_KEY || GROQ_API_KEY);
 }
 
 // ---- text-only AI call (resume maker jaisi cheezein) ----
 
-async function aiText(prompt) {
+async function openAiRequest(url, apiKey, body) {
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json();
+  return data?.choices?.[0]?.message?.content || '';
+}
+
+export async function aiText(prompt) {
   // 1) Google Gemini
   if (GEMINI_API_KEY) {
     const body = {
@@ -146,46 +159,24 @@ async function aiText(prompt) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
-        if (!res.ok) {
-          lastErr = `Gemini ${res.status}`;
-          continue;
-        }
+        if (!res.ok) { lastErr = `Gemini ${res.status}`; continue; }
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
         if (text.trim()) return text;
-      } catch (err) {
-        lastErr = err.message;
-      }
+      } catch (err) { lastErr = err.message; }
     }
     if (lastErr) console.error('Gemini text failed:', lastErr);
   }
 
-  // 2) NaraRouter / OpenAI-compatible
-  if (NARA_ROUTER_KEY) {
+  // 2) OpenAI-compatible (NaraRouter / Groq)
+  const providers = [];
+  if (NARA_ROUTER_KEY) providers.push({ name: 'NaraRouter', url: `${NARA_ROUTER_BASE}/chat/completions`, key: NARA_ROUTER_KEY, model: NARA_ROUTER_MODEL });
+  if (GROQ_API_KEY) providers.push({ name: 'Groq', url: 'https://api.groq.com/openai/v1/chat/completions', key: GROQ_API_KEY, model: GROQ_MODEL });
+  for (const p of providers) {
     try {
-      const res = await fetch(`${NARA_ROUTER_BASE}/chat/completions`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${NARA_ROUTER_KEY}`,
-        },
-        body: JSON.stringify({
-          model: NARA_ROUTER_MODEL,
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.7,
-          max_tokens: 4096,
-        }),
-      });
-      if (!res.ok) {
-        console.error(`NaraRouter ${res.status}: ${(await res.text()).slice(0, 200)}`);
-        return null;
-      }
-      const data = await res.json();
-      const content = data?.choices?.[0]?.message?.content || '';
+      const content = await openAiRequest(p.url, p.key, { model: p.model, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 4096 });
       if (String(content).trim()) return String(content);
-    } catch (err) {
-      console.error('NaraRouter text failed:', err.message);
-    }
+    } catch (err) { console.error(`${p.name} text failed:`, err.message); }
   }
   return null;
 }
@@ -334,54 +325,19 @@ async function aiViaGemini(buffer, filename) {
 
 // ---- provider 2: NaraRouter (OpenAI-compatible /chat/completions) ----
 async function aiViaOpenAi(buffer, filename) {
+  if (!NARA_ROUTER_KEY) return null;
   const img = await shrinkForAI(buffer, filename);
-  // OpenAI-compatible vision images leta hai, PDF nahi (wahan Gemini try karo)
   if (img.mime === 'application/pdf') return null;
-
-  const body = {
-    model: NARA_ROUTER_MODEL,
-    messages: [
-      {
-        role: 'user',
-        content: [
-          { type: 'text', text: PROMPT },
-          {
-            type: 'image_url',
-            image_url: { url: `data:${img.mime};base64,${img.data}` },
-          },
-        ],
-      },
-    ],
-    temperature: 0,
-    max_tokens: 2048,
-  };
-
-  let res;
   try {
-    res = await fetch(`${NARA_ROUTER_BASE}/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${NARA_ROUTER_KEY}`,
-      },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    console.error('NaraRouter request failed:', err.message);
-    return null;
-  }
-
-  if (!res.ok) {
-    const errText = await res.text();
-    console.error(`NaraRouter API ${res.status}: ${errText.slice(0, 300)}`);
-    return null;
-  }
-
-  const data = await res.json();
-  const content = data?.choices?.[0]?.message?.content || '';
-  if (!String(content).trim()) return null;
-
-  return parseJson(content);
+    const content = await openAiRequest(
+      `${NARA_ROUTER_BASE}/chat/completions`, NARA_ROUTER_KEY,
+      { model: NARA_ROUTER_MODEL, messages: [{ role: 'user', content: [
+        { type: 'text', text: PROMPT },
+        { type: 'image_url', image_url: { url: `data:${img.mime};base64,${img.data}` } },
+      ] }], temperature: 0, max_tokens: 2048 }
+    );
+    return content ? parseJson(content) : null;
+  } catch (err) { console.error('NaraRouter extraction failed:', err.message); return null; }
 }
 
 /** Model kabhi kabhi ```json ... ``` block me deta hai — dono style handle karo */

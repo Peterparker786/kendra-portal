@@ -47,6 +47,10 @@ export const NARA_ROUTER_KEY = process.env.NARA_ROUTER_KEY || '';
 export const NARA_ROUTER_BASE = process.env.NARA_ROUTER_BASE || 'https://router.bynara.id/v1';
 export const NARA_ROUTER_MODEL = process.env.NARA_ROUTER_MODEL || 'agnes-2.0-flash';
 
+// Groq: fast + free (console.groq.com se key lo)
+export const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+export const GROQ_MODEL = process.env.GROQ_MODEL || 'llama-3.1-8b-instant';
+
 // ---------------------------------------------------------------
 // 4) GOOGLE SHEET URL — topbar ka "Open Excel (Google Sheet)" button
 //    ise kholta hai. Apni spreadsheet ka link yahan daalo.
