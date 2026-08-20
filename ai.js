@@ -108,7 +108,7 @@ async function shrinkForAI(buffer, filename) {
     const w = meta.width || 0;
     const h = meta.height || 0;
     const maxDim = Math.max(w, h);
-    const TARGET = 1024; // 1028px = ~3x faster than 1568px
+    const TARGET = 800; // 800px = ~4x faster than original
     if (maxDim > TARGET) {
       const scale = TARGET / maxDim;
       const small = await sharp(buffer)
@@ -280,44 +280,29 @@ async function aiViaGemini(buffer, filename) {
     generationConfig: { temperature: 0, maxOutputTokens: 2048 },
   };
 
-  // Parallel: pehle faster model try karo, timeout ke saath
-  const TIMEOUT_MS = 15000; // 15 sec per model
-  let lastErr = '';
-  
-  for (const MODEL of MODELS) {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+  // Try all Gemini models in PARALLEL (8s timeout) — jo pehle aaye woh lelo
+  const TIMEOUT_MS = 8000;
+  const geminiResults = MODELS.map(async (MODEL) => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
-
-    let res;
     try {
-      res = await fetch(url, {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${encodeURIComponent(GEMINI_API_KEY)}`;
+      const res = await fetch(url, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
         signal: controller.signal,
       });
-    } catch (err) {
       clearTimeout(timer);
-      lastErr = err.name === 'AbortError' ? `${MODEL} timeout (${TIMEOUT_MS/1000}s)` : err.message;
-      continue;
-    }
-    clearTimeout(timer);
-
-    if (!res.ok) {
-      const errText = await res.text();
-      lastErr = `Gemini API ${res.status}: ${errText.slice(0, 200)}`;
-      continue;
-    }
-
-    const data = await res.json();
-    const text =
-      data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
-    if (!text.trim()) continue;
-
-    const parsed = parseJson(text);
-    if (parsed) return parsed;
-  }
+      if (!res.ok) return null;
+      const data = await res.json();
+      const text = data?.candidates?.[0]?.content?.parts?.map((p) => p.text || '').join('') || '';
+      return text.trim() ? parseJson(text) : null;
+    } catch { clearTimeout(timer); return null; }
+  });
+  // Jo pehle mile use lo
+  const geminiResult = await Promise.any(geminiResults).catch(() => null);
+  if (geminiResult) return geminiResult;
 
   console.error('Gemini extraction failed:', lastErr || 'sab models fail');
   return null;

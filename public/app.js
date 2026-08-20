@@ -132,7 +132,7 @@ function stopProgress() {
 }
 
 // Client-side image compress before upload (5x faster extraction)
-async function compressImage(file, maxPx = 1024, quality = 0.8) {
+async function compressImage(file, maxPx = 800, quality = 0.75) {
   if (!/^image\/(jpeg|png|webp)$/i.test(file.type)) return file; // PDF/text as-is
   return new Promise((resolve) => {
     const img = new Image();
