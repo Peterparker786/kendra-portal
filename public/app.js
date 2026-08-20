@@ -2707,72 +2707,188 @@ wireNav();
   });
 })();
 
-// ---------------------------------------------------------------- Floating Assistant
-(function wireAssistant() {
-  let assistantWin = null;
-  let assistantActive = false;
+// ---------------------------------------------------------------- Chutki AI Assistant (inline floating panel)
+(function wireChutki() {
   const fab = $('#assistantFab');
   const icon = $('#assistantFabIcon');
+  let panelOpen = false;
+  let isTyping = false;
 
-  // FAB click → popup open/close
+  // ---- Create inline panel ----
+  const panel = document.createElement('div');
+  panel.id = 'chutkiPanel';
+  panel.className = 'chutki-panel';
+  panel.innerHTML = `
+    <div class="chutki-header">
+      <span class="chutki-logo">✨</span>
+      <span class="chutki-title">Chutki</span>
+      <span class="chutki-badge">AI</span>
+      <span style="flex:1"></span>
+      <a href="/assistant.html" target="_blank" class="chutki-link" title="Naye tab me kholeo">↗</a>
+      <button class="chutki-min" title="Minimize">—</button>
+    </div>
+    <div class="chutki-tabs">
+      <div class="chutki-tab active" data-tab="chat">💬 Chat</div>
+      <div class="chutki-tab" data-tab="data">📋 Data</div>
+    </div>
+    <div class="chutki-chat" id="chutkiChat">
+      <div class="chutki-msgs" id="chutkiMsgs">
+        <div class="chutki-msg chutki-ai">
+          <div class="chutki-av">✨</div>
+          <div class="chutki-bubble">Namaste! Main <b>Chutki</b> hoon. 🤖<br>Mujhse pucho ya niche quick actions use karo.</div>
+        </div>
+      </div>
+      <div class="chutki-quick">
+        <button class="chutki-qbtn" data-msg="Screen read karo aur batao kya bharna hai">📖 Screen Read</button>
+        <button class="chutki-qbtn" data-msg="Form fields detect karo aur suggest karo kya dalna hai">📝 Auto-Fill</button>
+        <button class="chutki-qbtn" data-msg="Customer ka saara data dikhao">👤 Data</button>
+      </div>
+      <div class="chutki-input">
+        <input type="text" id="chutkiInput" placeholder="Chutki se pucho…" />
+        <button id="chutkiSend">➤</button>
+      </div>
+    </div>
+    <div class="chutki-data hidden" id="chutkiDataTab">
+      <div class="chutki-data-content" id="chutkiDataContent">Customer select karo…</div>
+      <button class="chutki-copyall" id="chutkiCopyAll">📋 Sab Copy</button>
+    </div>
+  `;
+  document.body.appendChild(panel);
+
+  // ---- FAB click → panel open/close ----
   fab.addEventListener('click', () => {
-    if (assistantWin && !assistantWin.closed) {
-      assistantWin.close();
-      assistantActive = false;
-      fab.classList.remove('active');
-      icon.textContent = '✨';
-      return;
-    }
-    const w = 360, h = 600;
-    const left = screen.width - w - 20;
-    const top = screen.height - h - 60;
-    assistantWin = window.open('/assistant.html', 'chutki', `width=${w},height=${h},left=${left},top=${top},scrollbars=no,resizable=yes`);
-    assistantActive = true;
-    fab.classList.add('active');
-    icon.textContent = '✅';
-    // Thodi der baad data bhejo
-    setTimeout(() => syncAssistant(), 500);
+    panelOpen = !panelOpen;
+    panel.classList.toggle('open', panelOpen);
+    fab.classList.toggle('active', panelOpen);
+    icon.textContent = panelOpen ? '✕' : '✨';
+    if (panelOpen) syncChutki();
   });
 
-  // Portal se assistant ko data sync karo
-  function syncAssistant() {
-    if (!assistantWin || assistantWin.closed) return;
-    const payload = { type: 'assistant-update', customers: state.customers };
-    if (state.profile) {
-      payload.customer = state.profile;
-      payload.customerId = state.selectedId;
+  // ---- Minimize ----
+  panel.querySelector('.chutki-min').addEventListener('click', () => {
+    panelOpen = false;
+    panel.classList.remove('open');
+    fab.classList.remove('active');
+    icon.textContent = '✨';
+  });
+
+  // ---- Tabs ----
+  panel.querySelectorAll('.chutki-tab').forEach((t) => {
+    t.addEventListener('click', () => {
+      panel.querySelectorAll('.chutki-tab').forEach((x) => x.classList.remove('active'));
+      t.classList.add('active');
+      panel.querySelector('.chutki-chat').classList.toggle('hidden', t.dataset.tab !== 'chat');
+      panel.querySelector('.chutki-data').classList.toggle('hidden', t.dataset.tab !== 'data');
+    });
+  });
+
+  // ---- Chat ----
+  const chutkiInput = panel.querySelector('#chutkiInput');
+  const chutkiSend = panel.querySelector('#chutkiSend');
+  chutkiSend.addEventListener('click', sendChutkiChat);
+  chutkiInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendChutkiChat(); });
+  panel.querySelectorAll('.chutki-qbtn').forEach((btn) => {
+    btn.addEventListener('click', () => { chutkiInput.value = btn.dataset.msg; sendChutkiChat(); });
+  });
+
+  async function sendChutkiChat() {
+    const msg = chutkiInput.value.trim();
+    if (!msg || isTyping) return;
+    chutkiInput.value = '';
+    addChutkiMsg('user', msg);
+    isTyping = true;
+    chutkiSend.disabled = true;
+    const typingEl = addChutkiTyping();
+    try {
+      let screenContent = '';
+      try { screenContent = document.body.innerText.slice(0, 3000); } catch {}
+      const r = await fetch('/api/chutki-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: msg, customerData: state.profile, screenContent }),
+      });
+      const d = await r.json();
+      typingEl.remove();
+      addChutkiMsg('ai', d.reply || 'Kuch samajh nahi aaya.');
+    } catch (err) {
+      typingEl.remove();
+      addChutkiMsg('ai', 'Error: ' + err.message);
+    } finally {
+      isTyping = false;
+      chutkiSend.disabled = false;
     }
-    assistantWin.postMessage(payload, '*');
-    // localStorage fallback (cross-origin ke liye)
-    try { localStorage.setItem('assistant-data', JSON.stringify(payload)); } catch {}
   }
 
-  // Jab customer select ho → assistant ko update karo
-  const origSelect = selectCustomer;
-  // Override selectCustomer to also sync assistant
-  window._origSelectCustomer = origSelect;
-  
-  // MutationObserver: jab profile badle → assistant sync
-  const profileCard = $('#profileCard');
-  if (profileCard) {
-    new MutationObserver(() => {
-      if (assistantActive) setTimeout(() => syncAssistant(), 300);
-    }).observe(profileCard, { attributes: true, subtree: true, childList: true });
+  function addChutkiMsg(type, text) {
+    const msgs = panel.querySelector('#chutkiMsgs');
+    const el = document.createElement('div');
+    el.className = 'chutki-msg ' + (type === 'ai' ? 'chutki-ai' : 'chutki-user');
+    const av = type === 'ai' ? '✨' : '👤';
+    el.innerHTML = `<div class="chutki-av">${av}</div><div class="chutki-bubble">${esc(text).replace(/\n/g, '<br>')}<div class="chutki-copymsg" onclick="navigator.clipboard.writeText(this.closest('.chutki-bubble').childNodes[0].textContent).then(()=>{this.textContent='✅';setTimeout(()=>this.textContent='📋',1200)})">📋</div></div>`;
+    msgs.appendChild(el);
+    msgs.scrollTop = msgs.scrollHeight;
   }
 
-  // Jab customer list load ho → assistant sync
-  const origLoad = loadCustomers;
-  window._origLoadCustomers = origLoad;
+  function addChutkiTyping() {
+    const msgs = panel.querySelector('#chutkiMsgs');
+    const el = document.createElement('div');
+    el.className = 'chutki-msg chutki-ai';
+    el.innerHTML = '<div class="chutki-av">✨</div><div class="chutki-bubble"><div class="chutki-typing"><span></span><span></span><span></span></div></div>';
+    msgs.appendChild(el);
+    msgs.scrollTop = msgs.scrollHeight;
+    return el;
+  }
 
-  // Listen for messages from assistant popup
+  // ---- Data Tab ----
+  function renderChutkiData() {
+    const content = panel.querySelector('#chutkiDataContent');
+    if (!state.profile) { content.innerHTML = '<p class="chutki-nodata">Customer select karo portal pe…</p>'; return; }
+    const c = state.profile;
+    const rows = [];
+    if (c.name) rows.push(['Name', c.name]);
+    if (c.father) rows.push(['Father', c.father]);
+    if (c.dob) rows.push(['DOB', c.dob]);
+    if (c.gender) rows.push(['Gender', c.gender]);
+    if (c.phone) rows.push(['Phone', c.phone]);
+    if (c.aadhaar) rows.push(['Aadhaar', c.aadhaar]);
+    if (c.address) rows.push(['Address', c.address]);
+    if (c.documents) c.documents.forEach((d) => {
+      if (d.doc_type) rows.push(['Type', d.doc_type]);
+      if (d.doc_no) rows.push(['Doc No', d.doc_no]);
+      if (d.issue_date) rows.push(['Issue', d.issue_date]);
+      if (d.valid_till) rows.push(['Valid Till', d.valid_till]);
+      if (d.issued_by) rows.push(['Issued By', d.issued_by]);
+      if (d.fields_json) { try { const fj = JSON.parse(d.fields_json); Object.entries(fj).forEach(([k, v]) => { if (v) rows.push([k, String(v)]); }); } catch {} }
+    });
+    content.innerHTML = rows.map(([k, v]) => `<div class="chutki-dfield"><span class="chutki-dlbl">${esc(k)}</span><span class="chutki-dval">${esc(v)}</span><button class="chutki-dcopy" data-v="${esc(v)}">📋</button></div>`).join('');
+    content.querySelectorAll('.chutki-dcopy').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.v).then(() => { btn.textContent = '✅'; setTimeout(() => btn.textContent = '📋', 1200); });
+      });
+    });
+    panel.querySelector('#chutkiCopyAll').onclick = () => {
+      const all = rows.map(([k, v]) => k + ': ' + v).join('\n');
+      navigator.clipboard.writeText(all).then(() => toast('Sab copy ho gaya!'));
+    };
+  }
+
+  // ---- Sync from portal ----
+  function syncChutki() {
+    renderChutkiData();
+  }
+
+  // Auto-sync when customer changes
+  const obs = new MutationObserver(() => { if (panelOpen) syncChutki(); });
+  const pc = $('#profileCard');
+  if (pc) obs.observe(pc, { attributes: true, subtree: true, childList: true });
+
+  // Listen for messages from standalone assistant.html
   window.addEventListener('message', (e) => {
-    if (e.data?.type === 'assistant-click' && e.data.customerId) {
-      selectCustomer(e.data.customerId);
-    }
+    if (e.data?.type === 'assistant-click' && e.data.customerId) selectCustomer(e.data.customerId);
   });
 
-  // Expose sync function globally
-  window.syncAssistant = syncAssistant;
+  window.syncAssistant = syncChutki;
+  window._chutkiPanel = panel;
 })();
 
 renderServices();
