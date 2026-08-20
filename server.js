@@ -236,7 +236,11 @@ app.post('/api/chutki-chat', async (req, res, next) => {
 
     ctx += `User: ${message}`;
 
-    const reply = await aiText(ctx);
+    let reply = await aiText(ctx);
+    // Strip <think>...</think> tags (Qwen model thinking output)
+    if (reply) reply = reply.replace(/<think>[\s\S]*?<\/think>/g, '').trim();
+    // Also strip any stray thinking blocks
+    if (reply) reply = reply.replace(/<think>[\s\S]*$/gm, '').trim();
     res.json({ reply: reply || 'Chutki abhi kuch samajh nahi paayi. Dubara try karo.' });
   } catch (err) { next(err); }
 });

@@ -132,6 +132,10 @@ export function aiEnabled() {
 
 // ---- text-only AI call (resume maker jaisi cheezein) ----
 
+function stripThinking(text) {
+  return String(text || '').replace(/<think>[\s\S]*?<\/think>/g, '').replace(/<think>[\s\S]*$/gm, '').trim();
+}
+
 async function openAiRequest(url, apiKey, body) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000); // 10s timeout
@@ -156,7 +160,7 @@ export async function aiText(prompt) {
     try {
       const content = await openAiRequest('https://api.groq.com/openai/v1/chat/completions', GROQ_API_KEY,
         { model: GROQ_MODEL, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 4096 });
-      if (String(content).trim()) return String(content);
+      if (stripThinking(content)) return stripThinking(content);
     } catch (err) { console.error('Groq text failed:', err.message); }
   }
 
@@ -190,7 +194,7 @@ export async function aiText(prompt) {
   for (const p of providers) {
     try {
       const content = await openAiRequest(p.url, p.key, { model: p.model, messages: [{ role: 'user', content: prompt }], temperature: 0.7, max_tokens: 4096 });
-      if (String(content).trim()) return String(content);
+      if (stripThinking(content)) return stripThinking(content);
     } catch (err) { console.error(`${p.name} text failed:`, err.message); }
   }
   return null;
