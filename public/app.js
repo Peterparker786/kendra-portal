@@ -2045,14 +2045,15 @@ function wirePassport() {
     toast('A4 sheet bana rahe hain…');
     try {
       let file = passportFile;
-      if (bg && /^#[0-9a-f]{6}$/i.test(bg)) {
-        // AI se asli background hatakar solid color laga do
-        setPassportProg(2, '🧠 AI background hata raha hai… (pehli baar ~15-30 sec, model download ho raha hai)');
-        file = await aiReplaceBackground(passportFile, bg, (p) => {
-          setPassportProg(p, '🧠 AI background hata raha hai…');
-        });
-        bg = ''; // background ab photo me hi laga hua hai
-      }
+      // Original (koi color nahi chuna) → AI se background hatakar white laga do
+      // Color chuna hai → usi color pe composite
+      const effectiveBg = bg && /^#[0-9a-f]{6}$/i.test(bg) ? bg : '#ffffff';
+      const bgLabel = effectiveBg === '#ffffff' ? 'white' : effectiveBg;
+      setPassportProg(2, `🧠 AI background hata raha hai → ${bgLabel} (pehli baar ~15-30 sec)`);
+      file = await aiReplaceBackground(passportFile, effectiveBg, (p) => {
+        setPassportProg(p, `🧠 AI background hata raha hai → ${bgLabel}`);
+      });
+      bg = ''; // background ab photo me hi laga hua hai
       setPassportProg(98, '📄 A4 sheet bana rahe hain…');
       const fd = new FormData();
       fd.append('file', file);
