@@ -134,21 +134,57 @@ app.post('/api/records', (req, res, next) => {
 
 // ---- document types: standard list + jo types pehle use ho chuke ----
 const DOC_TYPES = [
+  // ---- Government ID ----
   'Aadhaar Card',
   'Aadhaar Correction',
   'PAN Card',
+  'Voter ID',
+  'Passport',
+  'Driving License',
+  'ABHA (Ayushman Bharat)',
+  'Ration Card',
+  // ---- Certificates ----
   'Niwas Praman (Residence)',
   'Domicile Certificate',
   'Cast Certificate',
+  'Caste Validity',
   'Income Certificate',
+  'Non-Creamy Layer',
+  'EWS Certificate',
+  'Minority Certificate',
+  'Character Certificate',
   'Birth Certificate',
   'Death Certificate',
   'Marriage Registration',
-  'Voter ID',
-  'Ration Card',
+  // ---- Education ----
   'Student / University Registration',
   'Marksheet (BSc / BA / 12th)',
+  'Migration Certificate',
+  'Transfer Certificate',
+  'Provisional Certificate',
+  'Degree Certificate',
+  'Skill Certificate',
   'Scholarship Documents',
+  // ---- Property / Legal ----
+  'Property Document',
+  'Sale Deed',
+  'Gift Deed',
+  'Rent Agreement',
+  'Will / Testament',
+  'Affidavit',
+  'Power of Attorney',
+  // ---- Business / Utility ----
+  'Bank Passbook',
+  'Insurance Policy',
+  'Pension Document',
+  'LPG Gas Connection',
+  'Electricity Bill',
+  'Water Bill',
+  'Trade License',
+  'GST Registration',
+  'MSME / Udyog Aadhaar',
+  'FSSAI License',
+  // ---- Other ----
   'Other',
 ];
 
