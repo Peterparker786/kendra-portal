@@ -2003,63 +2003,228 @@ let passportPdfUrl = null;
 function wirePassport() {
   const modal = $('#passportModal');
   const makeBtn = $('#passportMakeBtn');
-  $('#passportBtn').addEventListener('click', () => {
-    modal.hidden = false;
-  });
-  $('#passportClose').addEventListener('click', () => {
-    modal.hidden = true;
-  });
+  let processedBlob = null; // AI-processed image (bg removed + solid color)
+  let crop = { x: 0, y: 0, w: 100, h: 100 }; // percentages of image
+  let imgNatW = 1, imgNatH = 1; // natural size of processed image
+
+  // ---- modal open/close ----
+  $('#passportBtn').addEventListener('click', () => { modal.hidden = false; });
+  $('#passportClose').addEventListener('click', () => { modal.hidden = true; });
   const customColor = $('#customBgColor');
   const customSwatch = $('#customBgSwatch');
-  customColor.addEventListener('input', () => {
-    customSwatch.style.background = customColor.value;
-  });
+  customColor.addEventListener('input', () => { customSwatch.style.background = customColor.value; });
   document.querySelectorAll('input[name="pbg"]').forEach((r) => {
-    r.addEventListener('change', () => {
-      if (r.value === 'custom') customColor.click();
-    });
+    r.addEventListener('change', () => { if (r.value === 'custom') customColor.click(); });
   });
-  modal.addEventListener('click', (e) => {
-    if (e.target === modal) modal.hidden = true;
-  });
+  modal.addEventListener('click', (e) => { if (e.target === modal) modal.hidden = true; });
+
+  // ---- upload button ----
   $('#passportPickBtn').addEventListener('click', () => $('#passportInput').click());
   $('#passportInput').addEventListener('change', (e) => {
     const f = e.target.files && e.target.files[0];
     e.target.value = '';
     if (!f) return;
     passportFile = f;
+    processedBlob = null;
+    crop = { x: 0, y: 0, w: 100, h: 100 };
     $('#passportInner').innerHTML =
       `<div class="upload-icon">📷</div><p class="upload-title">${escapeHtml(f.name)}</p>` +
       `<p class="upload-sub">${fmtSize(f.size)} — size/count chuno aur Sheet banao dabao</p>`;
-    makeBtn.disabled = false;
     $('#passportResult').hidden = true;
+    $('#passportCropWrap').hidden = true;
+    // AI bg removal shuru — abhi
+    runBgRemoval();
   });
-  makeBtn.addEventListener('click', async () => {
+
+  // ---- AI bg removal → crop editor ----
+  async function runBgRemoval() {
     if (!passportFile) return;
-    const size = (document.querySelector('input[name="psize"]:checked') || {}).value || '2x2';
-    const count = parseInt($('#passportCount').value, 10) || 8;
+    const bg = getSelectedBg();
+    setPassportProg(2, `🧠 AI background hata raha hai → ${bg} (pehli baar ~15-30 sec)`);
+    try {
+      processedBlob = await aiReplaceBackground(passportFile, bg, (p) => {
+        setPassportProg(p, `🧠 AI background hata raha hai → ${bg}`);
+      });
+      setPassportProg(100, '✅ Background hata diya!');
+      setTimeout(() => { $('#passportProgress').hidden = true; }, 600);
+      showCropEditor(processedBlob);
+    } catch (err) {
+      $('#passportProgress').hidden = true;
+      toast('AI background removal failed: ' + err.message, 'err');
+    }
+  }
+
+  function getSelectedBg() {
     let bg = (document.querySelector('input[name="pbg"]:checked') || {}).value || '';
     if (bg === 'custom') bg = $('#customBgColor').value;
-    makeBtn.disabled = true;
+    return bg && /^#[0-9a-f]{6}$/i.test(bg) ? bg : '#ffffff';
+  }
+
+  // ---- crop editor ----
+  function showCropEditor(blob) {
+    const url = URL.createObjectURL(blob);
+    const img = $('#passportCropImg');
+    img.onload = () => {
+      imgNatW = img.naturalWidth;
+      imgNatH = img.naturalHeight;
+      // default crop: passport aspect ratio (2:2.5 = 0.8) centered on image
+      const asp = getAspect();
+      let cw, ch;
+      if (imgNatW / imgNatH > asp) {
+        ch = imgNatH; cw = ch * asp;
+      } else {
+        cw = imgNatW; ch = cw / asp;
+      }
+      crop = {
+        x: ((imgNatW - cw) / 2 / imgNatW) * 100,
+        y: ((imgNatH - ch) / 2 / imgNatH) * 100,
+        w: (cw / imgNatW) * 100,
+        h: (ch / imgNatH) * 100,
+      };
+      updateCropRect();
+    };
+    img.src = url;
+    $('#passportCropWrap').hidden = false;
     $('#passportResult').hidden = true;
-    toast('A4 sheet bana rahe hain…');
+    $('#passportMakeBtn').disabled = false;
+  }
+
+  function getAspect() {
+    const size = (document.querySelector('input[name="psize"]:checked') || {}).value || '2x2';
+    return size === '35x45' ? 35 / 45 : 2 / 2.5; // 0.778 for 2x2, 0.778 for 35x45
+  }
+
+  function updateCropRect() {
+    const box = $('#passportCropBox');
+    const rect = $('#passportCropRect');
+    const bw = box.offsetWidth, bh = box.offsetHeight;
+    const rx = (crop.x / 100) * bw;
+    const ry = (crop.y / 100) * bh;
+    const rw = (crop.w / 100) * bw;
+    const rh = (crop.h / 100) * bh;
+    rect.style.left = rx + 'px';
+    rect.style.top = ry + 'px';
+    rect.style.width = rw + 'px';
+    rect.style.height = rh + 'px';
+  }
+
+  // ---- drag crop rect ----
+  (function initCropDrag() {
+    const rect = $('#passportCropRect');
+    const box = $('#passportCropBox');
+    let dragging = false, resizing = false, resizeCorner = '';
+    let startX, startY, startCrop;
+
+    function pos(e) {
+      const t = e.touches ? e.touches[0] : e;
+      const r = box.getBoundingClientRect();
+      return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+
+    rect.addEventListener('mousedown', startMove);
+    rect.addEventListener('touchstart', startMove, { passive: false });
+    function startMove(e) {
+      if (e.target.classList.contains('crop-corner')) { startResize(e); return; }
+      e.preventDefault();
+      dragging = true;
+      const p = pos(e);
+      startX = p.x; startY = p.y;
+      startCrop = { ...crop };
+    }
+
+    document.querySelectorAll('.crop-corner').forEach((c) => {
+      c.addEventListener('mousedown', startResize);
+      c.addEventListener('touchstart', startResize, { passive: false });
+    });
+    function startResize(e) {
+      e.preventDefault(); e.stopPropagation();
+      resizing = true;
+      resizeCorner = Array.from(e.target.classList).find(cl => cl.startsWith('crop-') && cl !== 'crop-corner').replace('crop-', '');
+      const p = pos(e);
+      startX = p.x; startY = p.y;
+      startCrop = { ...crop };
+    }
+
+    function onMove(e) {
+      if (!dragging && !resizing) return;
+      e.preventDefault();
+      const p = pos(e);
+      const bw = box.offsetWidth, bh = box.offsetHeight;
+      const dxPct = ((p.x - startX) / bw) * 100;
+      const dyPct = ((p.y - startY) / bh) * 100;
+      if (dragging) {
+        crop.x = Math.max(0, Math.min(100 - startCrop.w, startCrop.x + dxPct));
+        crop.y = Math.max(0, Math.min(100 - startCrop.h, startCrop.y + dyPct));
+      } else if (resizing) {
+        const asp = getAspect();
+        if (resizeCorner.includes('r')) {
+          crop.w = Math.max(10, Math.min(100 - startCrop.x, startCrop.w + dxPct));
+          crop.h = crop.w / asp;
+        } else if (resizeCorner.includes('l')) {
+          const newW = Math.max(10, Math.min(startCrop.w + startCrop.x, startCrop.w - dxPct));
+          const newH = newW / asp;
+          crop.x = startCrop.x + (startCrop.w - newW);
+          crop.w = newW;
+          crop.h = newH;
+        } else if (resizeCorner.includes('b')) {
+          crop.h = Math.max(10, Math.min(100 - startCrop.y, startCrop.h + dyPct));
+          crop.w = crop.h * asp;
+        } else if (resizeCorner.includes('t')) {
+          const newH = Math.max(10, Math.min(startCrop.h + startCrop.y, startCrop.h - dyPct));
+          const newW = newH * asp;
+          crop.y = startCrop.y + (startCrop.h - newH);
+          crop.h = newH;
+          crop.w = newW;
+        }
+        // clamp
+        crop.x = Math.max(0, Math.min(100 - crop.w, crop.x));
+        crop.y = Math.max(0, Math.min(100 - crop.h, crop.y));
+      }
+      updateCropRect();
+    }
+    function endDrag() { dragging = false; resizing = false; }
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('mouseup', endDrag);
+    document.addEventListener('touchend', endDrag);
+  })();
+
+  // ---- background change → re-run AI removal ----
+  document.querySelectorAll('input[name="pbg"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      if (!passportFile) return;
+      $('#passportCropWrap').hidden = true;
+      processedBlob = null;
+      runBgRemoval();
+    });
+  });
+
+  // ---- size change → update crop aspect ----
+  document.querySelectorAll('input[name="psize"]').forEach((r) => {
+    r.addEventListener('change', () => {
+      if (!processedBlob) return;
+      showCropEditor(processedBlob);
+    });
+  });
+
+  // ---- Sheet banao ----
+  makeBtn.addEventListener('click', async () => {
+    if (!processedBlob) return;
+    const size = (document.querySelector('input[name="psize"]:checked') || {}).value || '2x2';
+    const count = parseInt($('#passportCount').value, 10) || 8;
+    makeBtn.disabled = true;
+    setPassportProg(2, '📄 A4 sheet bana rahe hain…');
     try {
-      let file = passportFile;
-      // Original (koi color nahi chuna) → AI se background hatakar white laga do
-      // Color chuna hai → usi color pe composite
-      const effectiveBg = bg && /^#[0-9a-f]{6}$/i.test(bg) ? bg : '#ffffff';
-      const bgLabel = effectiveBg === '#ffffff' ? 'white' : effectiveBg;
-      setPassportProg(2, `🧠 AI background hata raha hai → ${bgLabel} (pehli baar ~15-30 sec)`);
-      file = await aiReplaceBackground(passportFile, effectiveBg, (p) => {
-        setPassportProg(p, `🧠 AI background hata raha hai → ${bgLabel}`);
-      });
-      bg = ''; // background ab photo me hi laga hua hai
-      setPassportProg(98, '📄 A4 sheet bana rahe hain…');
       const fd = new FormData();
-      fd.append('file', file);
+      fd.append('file', processedBlob);
       fd.append('size', size);
       fd.append('count', String(count));
-      fd.append('bg', bg);
+      fd.append('bg', ''); // bg already applied
+      fd.append('cropX', String(crop.x));
+      fd.append('cropY', String(crop.y));
+      fd.append('cropW', String(crop.w));
+      fd.append('cropH', String(crop.h));
       const r = await fetch('/api/passport', { method: 'POST', body: fd });
       const d = await r.json();
       if (!r.ok) throw new Error(d.error || 'Failed');
@@ -2075,17 +2240,39 @@ function wirePassport() {
         $('#passportPreviewWrap').hidden = true;
       }
       setPassportProg(100, '✅ Ho gaya!');
-      setTimeout(() => { $('#passportProgress').hidden = true; }, 900);
+      setTimeout(() => { $('#passportProgress').hidden = true; }, 600);
+      $('#passportCropWrap').hidden = true;
       $('#passportResult').hidden = false;
       $('#passportResult').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       toast(`Ho gaya! ${d.count} photos, ${d.pages} A4 page` + (d.pages > 1 ? 's' : ''));
     } catch (err) {
       $('#passportProgress').hidden = true;
-      toast(err.message || 'Background hatane me problem aayi', 'err');
+      toast(err.message || 'Sheet banane me problem aayi', 'err');
     } finally {
       makeBtn.disabled = false;
     }
   });
+
+  // ---- Edit Crop — wapas crop editor pe ----
+  $('#passportEditCrop').addEventListener('click', () => {
+    $('#passportResult').hidden = true;
+    if (processedBlob) showCropEditor(processedBlob);
+  });
+
+  // ---- Naya photo ----
+  $('#passportReUpload').addEventListener('click', () => {
+    processedBlob = null;
+    passportFile = null;
+    $('#passportCropWrap').hidden = true;
+    $('#passportResult').hidden = true;
+    $('#passportInner').innerHTML =
+      `<div class="upload-icon">📷</div><p class="upload-title">Photo upload karo (JPG / PNG)</p>` +
+      `<div class="upload-formats"><span class="fmt-chip">JPG</span><span class="fmt-chip">PNG</span></div>` +
+      `<button class="btn primary" id="passportPickBtn">Choose photo</button>`;
+    $('#passportPickBtn').addEventListener('click', () => $('#passportInput').click());
+  });
+
+  // ---- Download / Print ----
   $('#passportDownloadBtn').addEventListener('click', () => {
     if (!passportPdfUrl) return;
     const a = document.createElement('a');

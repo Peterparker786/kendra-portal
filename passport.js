@@ -25,6 +25,13 @@ export async function makePassportSheet(buffer, opts = {}) {
   const preset = PRESETS[size] || PRESETS['2x2'];
   const { w, h } = preset;
   const count = Math.max(1, Math.min(100, parseInt(countRaw, 10) || 8));
+  // User-defined crop (percentages of image): { x, y, w, h } each 0-100
+  const userCrop = opts.crop ? {
+    x: parseFloat(opts.crop.x) || 0,
+    y: parseFloat(opts.crop.y) || 0,
+    w: parseFloat(opts.crop.w) || 100,
+    h: parseFloat(opts.crop.h) || 100,
+  } : null;
 
   // ---- A4 layout (mm) ----
   const pageW = 210, pageH = 297;
@@ -89,6 +96,17 @@ export async function makePassportSheet(buffer, opts = {}) {
     }
     left = Math.round((meta.width - cw) / 2);
     top = Math.round((meta.height - ch) * 0.35); // center nahi, thoda upar
+  }
+  // ---- user-defined crop ya auto face-detect crop ----
+  if (userCrop) {
+    const uw = Math.round((userCrop.w / 100) * meta.width);
+    const uh = Math.round((userCrop.h / 100) * meta.height);
+    const ul = Math.round((userCrop.x / 100) * meta.width);
+    const ut = Math.round((userCrop.y / 100) * meta.height);
+    left = Math.max(0, Math.min(ul, meta.width - 1));
+    top = Math.max(0, Math.min(ut, meta.height - 1));
+    cw = Math.min(uw, meta.width - left);
+    ch = Math.min(uh, meta.height - top);
   }
   const photo = await sharp(working)
     .extract({ left, top, width: cw, height: ch })

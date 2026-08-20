@@ -63,10 +63,15 @@ app.post('/api/resize', upload.single('file'), async (req, res, next) => {
 app.post('/api/passport', upload.single('file'), async (req, res, next) => {
   try {
     if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
+    let crop = null;
+    if (req.body.cropX != null && req.body.cropY != null && req.body.cropW != null && req.body.cropH != null) {
+      crop = { x: req.body.cropX, y: req.body.cropY, w: req.body.cropW, h: req.body.cropH };
+    }
     const out = await makePassportSheet(req.file.buffer, {
       size: req.body.size || '2x2',
       count: req.body.count || 8,
       bg: req.body.bg || '',
+      crop,
     });
     res.json(out);
   } catch (err) {
