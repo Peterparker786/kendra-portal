@@ -2757,6 +2757,7 @@ wireNav();
       <div class="chutki-data-content" id="chutkiDataContent">Customer select karo…</div>
       <button class="chutki-copyall" id="chutkiCopyAll">📋 Sab Copy</button>
     </div>
+    <div class="chutki-resize-handle" title="Drag se size badlo"></div>
   `;
   document.body.appendChild(panel);
 

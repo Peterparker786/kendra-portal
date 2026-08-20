@@ -1632,7 +1632,9 @@ body {
 /* ------------- Chutki inline floating panel ------------- */
 .chutki-panel {
   position: fixed; bottom: 90px; right: 20px; width: 380px; height: 520px;
+  min-width: 280px; min-height: 300px; max-width: 90vw; max-height: 90vh;
   background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px;
+  resize: both; overflow: hidden;
   box-shadow: 0 20px 60px rgba(0,0,0,0.5); z-index: 10000;
   display: flex; flex-direction: column; overflow: hidden;
   transform: scale(0) translateY(20px); transform-origin: bottom right;
@@ -1640,6 +1642,14 @@ body {
   pointer-events: none;
 }
 .chutki-panel.open { transform: scale(1) translateY(0); opacity: 1; pointer-events: all; }
+.chutki-resize-handle {
+  position: absolute; bottom: 0; right: 0; width: 20px; height: 20px;
+  cursor: nwse-resize; z-index: 10;
+}
+.chutki-resize-handle::after {
+  content: '⋮⋮'; position: absolute; bottom: 4px; right: 4px;
+  font-size: 10px; color: #94a3b8; transform: rotate(-45deg);
+}
 
 .chutki-header {
   display: flex; align-items: center; gap: 6px; padding: 10px 12px;
