@@ -38,6 +38,7 @@
         <a class="side-item" id="servicesBtn">🛠 Services</a>
         <a class="side-item" id="phoneUploadBtn">📱 Upload from Phone</a>
         <a class="side-item" id="quickFillBtn">📋 Quick Fill</a>
+        <a class="side-item" id="downloadChutkiBtn">⬇️ Download Chutki</a>
 
         <div class="side-sec">MANAGEMENT</div>
         <a class="side-item" id="navCustomers">👥 Customers</a>
@@ -627,6 +628,36 @@
           </div>
         </div>
         <div id="qfFields" style="max-height:400px;overflow-y:auto"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ DOWNLOAD CHUTKI MODAL ============ -->
+  <div class="modal" id="downloadModal" hidden>
+    <div class="modal-card" style="max-width:500px;text-align:center">
+      <div class="modal-head">
+        <h2>✨ Download Chutki Desktop</h2>
+        <button class="modal-close" id="downloadClose">✕</button>
+      </div>
+      <div style="padding:20px 0">
+        <div style="font-size:64px;margin-bottom:12px">✨</div>
+        <h3 style="color:#1e293b;margin-bottom:8px">Chutki AI Assistant</h3>
+        <p style="color:#64748b;font-size:14px;margin-bottom:20px">Always-on-top AI assistant — screen read kare, form fill kare, suggestions de.</p>
+        <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;margin-bottom:20px;text-align:left">
+          <p style="font-weight:700;color:#1e293b;margin-bottom:8px">Features:</p>
+          <ul style="color:#475569;font-size:13px;line-height:1.8;padding-left:20px">
+            <li>📌 <b>Always On Top</b> — hamesha upar rahega</li>
+            <li>📸 <b>Screen Read</b> — screen capture + AI analysis</li>
+            <li>📝 <b>Auto-Fill</b> — form fields detect kare</li>
+            <li>💬 <b>AI Chat</b> — Chutki se pucho</li>
+            <li>📋 <b>Quick Copy</b> — customer data ek click me</li>
+          </ul>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <a href="/chutki-desktop.exe" download class="btn primary big" style="text-decoration:none">⬇️ Download .exe (Windows)</a>
+          <a href="/assistant.html" target="_blank" class="btn big" style="text-decoration:none">🌐 Web Version</a>
+        </div>
+        <p style="color:#94a3b8;font-size:11px;margin-top:12px">Windows 10/11 • 85 MB • Free forever</p>
       </div>
     </div>
   </div>

@@ -2544,6 +2544,11 @@ wireNav();
   $('#quickFillClose').addEventListener('click', () => { $('#quickFillModal').hidden = true; });
   $('#quickFillModal').addEventListener('click', (e) => { if (e.target === $('#quickFillModal')) $('#quickFillModal').hidden = true; });
 
+  // Download Chutki modal
+  $('#downloadChutkiBtn').addEventListener('click', () => { $('#downloadModal').hidden = false; });
+  $('#downloadClose').addEventListener('click', () => { $('#downloadModal').hidden = true; });
+  $('#downloadModal').addEventListener('click', (e) => { if (e.target === $('#downloadModal')) $('#downloadModal').hidden = true; });
+
   async function loadCustomerList() {
     try {
       const r = await fetch('/api/customers');

@@ -116,9 +116,10 @@ body { font-family: system-ui, -apple-system, sans-serif; background: #0f172a; c
   </div>
   <div class="quick-actions" id="quickActions">
     <button class="quick-btn" data-msg="Screen read karo aur batao kya kya bharna hai">📖 Screen Read</button>
-    <button class="quick-btn" data-msg="Form fields detect karo aur suggest karo kya dalna hai">📝 Auto-Fill Suggest</button>
-    <button class="quick-btn" data-msg="Customer ka saara data dikhao">👤 Customer Data</button>
-    <button class="quick-btn" data-msg="Is form me kya kya dalna hai step by step batao"> Step by Step</button>
+    <button class="quick-btn" data-msg="Screen capture karke batao kya dikh raha hai">📸 Capture</button>
+    <button class="quick-btn" data-msg="Form fields detect karo aur suggest karo kya dalna hai">📝 Auto-Fill</button>
+    <button class="quick-btn" data-msg="Customer ka saara data dikhao">👤 Data</button>
+    <button class="quick-btn" id="toggleTopBtn" style="display:none">📌 Always On Top</button>
   </div>
   <div class="chat-input">
     <input type="text" id="chatInput" placeholder="Chutki se pucho…" />
@@ -380,6 +381,63 @@ setInterval(() => {
     }
   } catch {}
 }, 1500);
+
+// ---- Electron features ----
+(async () => {
+  if (!window.chutki) return; // not in Electron
+  const info = await window.chutki.getInfo();
+  document.querySelector('.header .badge').textContent = 'Desktop ' + info.version;
+  
+  // Show always-on-top toggle
+  const toggleBtn = document.getElementById('toggleTopBtn');
+  toggleBtn.style.display = '';
+  toggleBtn.textContent = info.isOnTop ? '📌 Always On: ON' : '📌 Always On: OFF';
+  toggleBtn.addEventListener('click', async () => {
+    const isOnTop = await window.chutki.toggleAlwaysOnTop();
+    toggleBtn.textContent = isOnTop ? '📌 Always On: ON' : '📌 Always On: OFF';
+    addMessage('chutki', isOnTop ? '✅ Ab hamesha upar rahega!' : '❌ Ab normal mode me hai.');
+  });
+  
+  // Window controls
+  document.querySelector('.header').innerHTML += `
+    <button class="quick-btn" onclick="window.chutki.minimize()" style="background:rgba(255,255,255,0.2);color:#fff;border:none;margin-left:4px">—</button>
+    <button class="quick-btn" onclick="window.chutki.close()" style="background:rgba(255,255,255,0.2);color:#fff;border:none">✕</button>
+  `;
+})();
+
+// Screen capture handler
+document.querySelector('[data-msg="Screen capture karke batao kya dikh raha hai"]').addEventListener('click', async () => {
+  if (!window.chutki) {
+    addMessage('chutki', 'Screen capture sirf Desktop app me kaam karta hai. Chutki download karo!');
+    return;
+  }
+  addMessage('user', '📸 Screen capture kar raha hoon…');
+  const typingEl = addTyping();
+  try {
+    const imageData = await window.chutki.captureScreen();
+    if (!imageData) {
+      typingEl.remove();
+      addMessage('chutki', 'Screen capture fail ho gaya. Permission do ya dubara try karo.');
+      return;
+    }
+    // Send to AI for analysis
+    const r = await fetch('/api/chutki-chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: 'Ye screenshot hai — batao kya dikh raha hai aur kya bharna hai. Form fields detect karo.',
+        customerData: currentData,
+        screenContent: '[Screen Capture: ' + imageData.slice(0, 100) + '...]',
+      }),
+    });
+    const d = await r.json();
+    typingEl.remove();
+    addMessage('chutki', d.reply || 'Screenshot analyze nahi ho paya.');
+  } catch (err) {
+    typingEl.remove();
+    addMessage('chutki', 'Error: ' + err.message);
+  }
+});
 
 function esc(s) { return String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
 function escapeHtml(s) { return esc(s); }
