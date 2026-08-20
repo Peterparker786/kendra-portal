@@ -2902,3 +2902,146 @@ loadDocTypes();
 loadServices();
 loadCustomers();
 loadStats();
+
+// ==================== WATCH FOLDER + SETTINGS ====================
+(() => {
+  const $settingsBtn = document.getElementById('settingsBtn');
+  const $settingsModal = document.getElementById('settingsModal');
+  const $settingsClose = document.getElementById('settingsClose');
+  const $folderInput = document.getElementById('folderPathInput');
+  const $saveFolder = document.getElementById('saveFolderBtn');
+  const $watchStatus = document.getElementById('watchStatus');
+  const $pendingList = document.getElementById('pendingFilesList');
+  const $notifs = document.getElementById('watchNotifications');
+  const $toast = document.getElementById('watchToast');
+  const $toastMsg = document.getElementById('watchToastMsg');
+  const $toastScan = document.getElementById('watchToastScan');
+  const $toastDismiss = document.getElementById('watchToastDismiss');
+  if (!$settingsBtn) return;
+
+  // Open/close settings
+  $settingsBtn.onclick = () => { $settingsModal.hidden = false; loadWatchSettings(); };
+  $settingsClose.onclick = () => { $settingsModal.hidden = true; };
+  $settingsModal.addEventListener('click', (e) => { if (e.target === $settingsModal) $settingsModal.hidden = true; });
+
+  // Load current settings
+  async function loadWatchSettings() {
+    try {
+      const r = await fetch('/api/watch/settings');
+      const d = await r.json();
+      $folderInput.value = d.folder || '';
+      $watchStatus.innerHTML = d.isWatching
+        ? `<span style="color:#22c55e">●</span> Watching: <b>${d.folder}</b>`
+        : `<span style="color:#94a3b8">●</span> Not watching any folder`;
+      renderPendingFiles(d.files || []);
+    } catch { $watchStatus.innerHTML = '<span style="color:#ef4444">Error loading settings</span>'; }
+  }
+
+  // Save folder
+  $saveFolder.onclick = async () => {
+    const folder = $folderInput.value.trim();
+    if (!folder) return toast('Folder path dalo!');
+    $saveFolder.textContent = 'Saving...';
+    try {
+      const r = await fetch('/api/watch/settings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ folder })
+      });
+      const d = await r.json();
+      if (d.ok) { toast('✅ Folder set: ' + d.folder); loadWatchSettings(); }
+      else toast('❌ ' + (d.error || 'Error'));  
+    } catch { toast('❌ Save failed'); }
+    $saveFolder.textContent = '💾 Save';
+  };
+
+  // Render pending files
+  function renderPendingFiles(files) {
+    if (!files.length) { $pendingList.innerHTML = '<p class="hint" style="padding:8px 0">Koi pending file nahi hai — sab processed ho gaye ya folder empty hai.</p>'; return; }
+    $pendingList.innerHTML = files.map(f => {
+      const icon = f.name.match(/\.pdf$/i) ? '📄' : '🖼️';
+      const size = f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : (f.size / 1024).toFixed(0) + ' KB';
+      return `<div class="pending-file" data-id="${f.id}" data-name="${f.name}">
+        <span class="pf-icon">${icon}</span>
+        <div class="pf-info"><div class="pf-name">${f.name}</div><div class="pf-size">${size} • ${timeAgo(f.addedAt)}</div></div>
+        <button class="pf-scan" data-id="${f.id}" data-name="${f.name}">🔍 Scan</button>
+      </div>`;
+    }).join('');
+    $pendingList.querySelectorAll('.pf-scan').forEach(btn => {
+      btn.onclick = () => scanFile(btn.dataset.id, btn.dataset.name, btn);
+    });
+  }
+
+  function timeAgo(iso) {
+    const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+    if (s < 60) return s + 's ago';
+    if (s < 3600) return Math.floor(s / 60) + 'm ago';
+    return Math.floor(s / 3600) + 'h ago';
+  }
+
+  // Scan a file
+  async function scanFile(id, name, btn) {
+    btn.textContent = '⏳'; btn.classList.add('processing'); btn.disabled = true;
+    try {
+      const r = await fetch('/api/watch/scan', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: '', fileName: name })
+      });
+      const d = await r.json();
+      if (d.ok) {
+        toast('✅ ' + name + ' scanned!');
+        addNotif('✅ ' + name + ' — scanned successfully');
+        loadWatchSettings();
+        loadCustomers(); loadStats();
+      } else toast('❌ ' + (d.error || 'Scan failed'));
+    } catch { toast('❌ Scan failed'); }
+    btn.textContent = '🔍'; btn.classList.remove('processing'); btn.disabled = false;
+  }
+
+  // Add notification
+  function addNotif(msg) {
+    const time = new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const div = document.createElement('div');
+    div.style.cssText = 'padding:6px 8px;font-size:11px;border-bottom:1px solid #f1f5f9;color:#475569';
+    div.textContent = time + ' — ' + msg;
+    $notifs.prepend(div);
+    // Remove "no notifications" hint
+    const hint = $notifs.querySelector('.hint');
+    if (hint) hint.remove();
+  }
+
+  // Toast notification for new file
+  let toastTimeout;
+  function showWatchToast(msg, fileName) {
+    $toastMsg.textContent = msg;
+    $toast.hidden = false;
+    $toast.classList.add('show');
+    $toastScan.onclick = () => { scanFile(null, fileName, $toastScan); };
+    $toastDismiss.onclick = hideWatchToast;
+    clearTimeout(toastTimeout);
+    toastTimeout = setTimeout(hideWatchToast, 8000);
+  }
+  function hideWatchToast() {
+    $toast.classList.remove('show');
+    setTimeout(() => { $toast.hidden = true; }, 400);
+  }
+
+  // SSE — real-time updates from watcher
+  let evtSource;
+  function connectSSE() {
+    evtSource = new EventSource('/api/watch/events');
+    evtSource.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.type === 'new-file') {
+          showWatchToast('📄 New document found: ' + d.file.name, d.file.name);
+          addNotif('📄 New: ' + d.file.name);
+          loadWatchSettings();
+        } else if (d.type === 'file-removed') {
+          loadWatchSettings();
+        }
+      } catch {}
+    };
+    evtSource.onerror = () => { setTimeout(connectSSE, 5000); };
+  }
+  connectSSE();
+})();

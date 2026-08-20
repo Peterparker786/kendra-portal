@@ -60,6 +60,7 @@
           <div class="profile-chip">
             <div class="profile-avatar">M</div>
             <div class="profile-text"><b>Manish Mishra</b><small>Administrator</small></div>
+            <button class="settings-gear" id="settingsBtn" title="Settings">⚙️</button>
           </div>
         </div>
       </header>
@@ -718,6 +719,46 @@
   </div>
 
   <div id="toast" class="toast" role="status"></div>
+
+  <!-- ============ SETTINGS MODAL ============ -->
+  <div class="modal" id="settingsModal" hidden>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h2>⚙️ Settings</h2>
+        <button class="modal-close" id="settingsClose" title="Band karo">✕</button>
+      </div>
+
+      <div class="dd-sec">📁 Watch Folder — Auto Document Scanner</div>
+      <div style="padding:8px 0">
+        <p class="hint" style="margin:0 0 10px">Folder select karo — naye documents auto-detect honge aur notification aayega. Click karke scan kar sakte ho.</p>
+        <div style="display:flex;gap:8px;align-items:center">
+          <input type="text" id="folderPathInput" class="search-input" placeholder="C:\\Users\\Documents\\Kendra" style="flex:1;font-size:12px;padding:8px 12px;border:1px solid #d1d5db;border-radius:8px" />
+          <button class="btn primary" id="saveFolderBtn" style="white-space:nowrap">💾 Save</button>
+        </div>
+        <div id="watchStatus" style="margin-top:10px;font-size:11px;color:#64748b"></div>
+      </div>
+
+      <div class="dd-sec" style="margin-top:12px">📊 Pending Files</div>
+      <div id="pendingFilesList" style="max-height:240px;overflow-y:auto">
+        <p class="hint" style="padding:8px 0">Koi pending file nahi hai.</p>
+      </div>
+
+      <div class="dd-sec" style="margin-top:12px">🔔 Notifications</div>
+      <div id="watchNotifications" style="max-height:180px;overflow-y:auto">
+        <p class="hint" style="padding:8px 0">Abhi koi notification nahi.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ WATCH FOLDER NOTIFICATION TOAST (auto-slide) ============ -->
+  <div id="watchToast" class="watch-toast" hidden>
+    <div class="watch-toast-inner">
+      <span class="watch-toast-icon">📄</span>
+      <span class="watch-toast-msg" id="watchToastMsg">New document found!</span>
+      <button class="watch-toast-scan" id="watchToastScan">🔍 Scan</button>
+      <button class="watch-toast-dismiss" id="watchToastDismiss">✕</button>
+    </div>
+  </div>
 
   <!-- Chutki AI Assistant -->
   <div id="assistantFab" title="✨ Chutki — AI Assistant">

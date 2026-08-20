@@ -608,6 +608,130 @@ app.post('/phone/:sessionId', upload.single('file'), (req, res) => {
   res.json({ ok: true, count: session.files.length });
 });
 
+// ---- Watch Folder: auto-detect new documents ----
+import chokidar from 'chokidar';
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+
+let watchFolder = process.env.WATCH_FOLDER || '';
+let watcher = null;
+let pendingFiles = new Map(); // path → { name, size, addedAt, status }
+const sseClients = new Set(); // SSE connections
+
+function notifyFrontend(event) {
+  for (const res of sseClients) {
+    try { res.write(`data: ${JSON.stringify(event)}\n\n`); } catch {}
+  }
+}
+
+function startWatcher() {
+  if (watcher) { watcher.close(); watcher = null; }
+  if (!watchFolder || !fs.existsSync(watchFolder)) return;
+  console.log('📁 Watching folder:', watchFolder);
+  watcher = chokidar.watch(watchFolder, {
+    ignored: /(^|[\/\\])\./, // ignore dotfiles
+    persistent: true,
+    ignoreInitial: false,
+    depth: 2,
+  });
+  watcher.on('add', async (filePath) => {
+    const ext = path.extname(filePath).toLowerCase();
+    if (!['.pdf', '.jpg', '.jpeg', '.png', '.bmp', '.tiff'].includes(ext)) return;
+    const stat = fs.statSync(filePath);
+    const id = crypto.createHash('md5').update(filePath).digest('hex').slice(0, 12);
+    if (pendingFiles.has(filePath)) return; // already tracked
+    const info = { id, name: path.basename(filePath), size: stat.size, path: filePath, addedAt: new Date().toISOString(), status: 'pending' };
+    pendingFiles.set(filePath, info);
+    notifyFrontend({ type: 'new-file', file: { id: info.id, name: info.name, size: info.size, addedAt: info.addedAt } });
+    console.log('📄 New file:', info.name);
+  });
+  watcher.on('unlink', (filePath) => {
+    pendingFiles.delete(filePath);
+    notifyFrontend({ type: 'file-removed', path: filePath });
+  });
+  watcher.on('error', (err) => console.error('Watcher error:', err.message));
+}
+
+// SSE endpoint — frontend real-time updates ke liye
+app.get('/api/watch/events', (req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+  res.write('data: {"type":"connected"}\n\n');
+  sseClients.add(res);
+  req.on('close', () => sseClients.delete(res));
+});
+
+// Get/set watch folder
+app.get('/api/watch/settings', (_req, res) => {
+  const files = Array.from(pendingFiles.values()).map(({ path: _p, ...rest }) => rest);
+  res.json({ folder: watchFolder, isWatching: !!watcher, pendingCount: files.length, files });
+});
+
+app.post('/api/watch/settings', (req, res) => {
+  const { folder } = req.body || {};
+  if (!folder) return res.status(400).json({ error: 'Folder path required' });
+  if (!fs.existsSync(folder)) return res.status(400).json({ error: 'Folder not found: ' + folder });
+  watchFolder = folder;
+  pendingFiles.clear();
+  startWatcher();
+  res.json({ ok: true, folder: watchFolder });
+});
+
+// Scan a pending file — extract data and save
+app.post('/api/watch/scan', upload.single('file'), async (req, res, next) => {
+  try {
+    let filePath = req.body.path;
+    const customerName = req.body.customerName || '';
+    const fileName = req.body.fileName || '';
+    // If fileName given but no path, look up from pendingFiles
+    if (!filePath && fileName) {
+      for (const [p, info] of pendingFiles) {
+        if (info.name === fileName) { filePath = p; break; }
+      }
+    }
+    let buffer, filename;
+    if (filePath && fs.existsSync(filePath)) {
+      buffer = fs.readFileSync(filePath);
+      filename = path.basename(filePath);
+      if (pendingFiles.has(filePath)) { pendingFiles.get(filePath).status = 'processing'; }
+      notifyFrontend({ type: 'file-scanning', path: filePath });
+    } else if (req.file) {
+      buffer = req.file.buffer;
+      filename = req.file.originalname;
+    } else {
+      return res.status(400).json({ error: 'No file to scan' });
+    }
+    // Extract data via AI
+    const extracted = await analyzeDocument(buffer, filename);
+    // Save to database
+    if (extracted) {
+      const customer = store.findOrCreateCustomer({ name: extracted.customerName || customerName || filename, ...extracted.fields });
+      store.saveDocument({
+        customerId: customer.id,
+        docType: extracted.docType || 'Other',
+        docNo: extracted.fields?.docNo || '',
+        issueDate: extracted.fields?.issueDate || '',
+        validTill: extracted.fields?.validTill || '',
+        issuedBy: extracted.fields?.issuedBy || '',
+        status: 'Submitted',
+        remarks: 'Auto-scanned from watch folder',
+        filename,
+        fieldsJson: JSON.stringify(extracted.fields || {}),
+      });
+      if (filePath && pendingFiles.has(filePath)) {
+        pendingFiles.get(filePath).status = 'done';
+        notifyFrontend({ type: 'file-scanned', path: filePath, customerName: customer.name, docType: extracted.docType });
+      }
+      res.json({ ok: true, customerName: customer.name, docType: extracted.docType, fields: extracted.fields });
+    } else {
+      if (filePath && pendingFiles.has(filePath)) {
+        pendingFiles.get(filePath).status = 'failed';
+        notifyFrontend({ type: 'file-failed', path: filePath });
+      }
+      res.json({ ok: false, error: 'Data extract nahi ho paya' });
+    }
+  } catch (err) { next(err); }
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use((err, _req, res, _next) => {
